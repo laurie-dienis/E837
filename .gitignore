@@ -1,0 +1,16 @@
+#ignore hidden dir
+.*
+
+#but track this one 
+!.gitignore
+!.gitkeep
+
+# files
+*.root
+*.sh
+*.png
+*.jpg
+*.pdf
+*.zip
+*.dat
+*.ods

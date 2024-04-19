@@ -1,0 +1,5 @@
+-xc++
+-lstdc++
+-std=gnu++17
+-I/home/eactar/Analysis_e837/root/include
+-I/home/eactar/Analysis_e837/ActRootV2/install/include
