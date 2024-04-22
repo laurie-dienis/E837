@@ -40,9 +40,7 @@ TH1D* GetProjectionX(TH2D* h, double xmin, double xmax, TString name = "projX_Ex
 void Pipe2_Ex(const std::string& beam, const std::string& target, const std::string& light, double ebeam_i,
               int pressure)
 {
-
     ROOT::EnableImplicitMT();
-
     // Read data
     ROOT::RDataFrame d {"PID_Tree", E837Utils::GetFileName(1, pressure, beam, target, light)};
     auto df = d.Filter("ESil>0");
@@ -109,17 +107,17 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                          std::pair<double, double> ret;
                          double ereac, range_beam_f, dist_vertex, dist_sil, eloss, eloss_previous;
                          double elight = esil_guess;
-                         std::cout << "esilguess = " << elight << "MeV"
-                                   << "\n";
+                         // std::cout << "esilguess = " << elight << "MeV"
+                         //           << "\n";
                          double theta = merger.fThetaLight * TMath::DegToRad();
                          double range_ini_sil = srim->EvalDirect("light", esil);
-                         std::cout << "------------------------------" << '\n';
-                         std::cout << "-> Theta : " << theta * TMath::RadToDeg() << '\n';
-                         std::cout << "-> ESil  : " << esil << '\n';
+                         // std::cout << "------------------------------" << '\n';
+                         // std::cout << "-> Theta : " << theta * TMath::RadToDeg() << '\n';
+                         // std::cout << "-> ESil  : " << esil << '\n';
                          for(int i = 0; i < 15; i++)
                          {
-                             // std::cout << "elight_" << i << " = " << elight << "MeV"
-                             //         << "\n";
+                             std::cout << "elight_" << i << " = " << elight << "MeV"
+                                     << "\n";
                              ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) * elight /
                                      (4 * mass_light * std::pow(std::cos(theta), 2));
                              // std::cout << "ereac_" << i << " = " << ereac << "MeV"
@@ -140,23 +138,12 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                              // {
                              //     dist_target = 250.;
                              // }
-                             // std::cout << "dist_target_" << i << " = " << dist_target << "mm"
-                             //  << "\n";
                              dist_sil = (merger.fSP.X() - dist_vertex) / std::cos(theta);
-                             if(i == 0)
-                             {
-                                 // dist_sil = merger.fSP.X();
-                             }
-                             // if(dist_sil < 0)
-                             // {
-                             // }
-                             // std::cout << "dist_sil_" << i << " = " << merger.fSP.X() << "mm"
-                             //<< "\n";
                              eloss_previous = eloss;
                              auto range_vertex_sil = range_ini_sil + dist_sil;
                              elight = srim->EvalInverse("light", range_vertex_sil);
                              // Absolute value?
-                             eloss = std::abs(elight - esil);
+                             eloss = esil - elight;
                              // eloss = esil - srim->EvalInverse("light", dist_sil);
                              // std::cout << "eloss_" << i << " = " << eloss << "MeV"
                              //      << "\n";
@@ -198,13 +185,21 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
 
     // comparison with other method for reconstruction Ex
 
-    def = def.Define("EBeam",
+    def = def.Define("EBeam_range",
                      [&](const ActRoot::MergerData& d)
                      { return srim->Slow("beam", ebeam_i_MeV, d.fRP.X(), d.fThetaBeam * TMath::DegToRad()); },
                      {"MergerData"});
 
+    def = def.DefineSlot("EBeam_Si",
+        [&](unsigned int slot, double evertex, float theta)
+        {
+            return vkins[slot].ReconstructBeamEnergyFromLabKinematics(evertex, theta * TMath::DegToRad());
+        },
+        {"EVertex", "fThetaLight"});
+
+
     // ThetaCM
-    def = def.DefineSlot("ThetaCM",
+    def = def.DefineSlot("ThetaCM_range",
                          [&](unsigned int slot, double ereac, double evertex, float theta)
                          {
                              // return -1.;
@@ -218,10 +213,27 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                              return 180 - (vkins[slot].ReconstructTheta3CMFromLab(evertex, theta * TMath::DegToRad()) *
                                            TMath::RadToDeg());
                          },
-                         {"EBeam", "EVertex", "fThetaLight"});
+                         {"EBeam_range", "EVertex", "fThetaLight"});
+    
+    // ThetaCM
+    def = def.DefineSlot("ThetaCM_Si",
+                         [&](unsigned int slot, double ereac, double evertex, float theta)
+                         {
+                             // return -1.;
+                             if(std::isnan(ereac) || ereac < vkins[slot].GetT1Thresh())
+                             {
+                                 return -11.;
+                             }
+                             vkins[slot].SetBeamEnergy(ereac);
+                             // std::cout << "ThetaCM = " << 180 - (vkins[slot].ReconstructTheta3CMFromLab(evertex,
+                             // theta*TMath::DegToRad())*TMath::RadToDeg())<< "\n";
+                             return 180 - (vkins[slot].ReconstructTheta3CMFromLab(evertex, theta * TMath::DegToRad()) *
+                                           TMath::RadToDeg());
+                         },
+                         {"EBeam_Si", "EVertex", "fThetaLight"});
 
     // Ex of 8He
-    def = def.DefineSlot("Eex",
+    def = def.DefineSlot("Eex_range",
                          [&](unsigned int slot, const ActRoot::MergerData& d, double ebeam, double evertex)
                          {
                              if(std::isnan(ebeam) || ebeam < vkins[slot].GetT1Thresh())
@@ -232,21 +244,70 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                              vkins[slot].SetBeamEnergy(ebeam);
                              return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad());
                          },
-                         {"MergerData", "EBeam", "EVertex"});
+                         {"MergerData", "EBeam_range", "EVertex"});
 
-    def = def.DefineSlot(
-        "Ereac_check",
-        [&](unsigned int slot, double evertex, float theta)
+
+    // Ex of 8He
+    def = def.DefineSlot("Eex_Si",
+                         [&](unsigned int slot, const ActRoot::MergerData& d, double ebeam, double evertex)
+                         {
+                             if(std::isnan(ebeam) || ebeam < vkins[slot].GetT1Thresh())
+                             {
+                                 return -11.;
+                             }
+
+                             vkins[slot].SetBeamEnergy(ebeam);
+                             return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad());
+                         },
+                         {"MergerData", "EBeam_Si", "EVertex"});
+
+    //Ereac non interative
+    def = def.Define(
+        "Ereac_check_range",
+        [&](double ebeam)
         {
             // std::cout << "ereac = " << vkins[slot].ReconstructBeamEnergyFromLabKinematics(evertex, theta *
             // TMath::DegToRad()) *
             //             (mass_target / (mass_target + mass_beam)) +
             //       kin_particle_threshold << " MeV" << "\n";
-            return (vkins[slot].ReconstructBeamEnergyFromLabKinematics(evertex, theta * TMath::DegToRad()) *
-                        (mass_target / (mass_target + mass_beam)) +
-                    kin_particle_threshold);
+            return (ebeam * (mass_target / (mass_target + mass_beam)) + kin_particle_threshold);
         },
-        {"EVertex", "fThetaLight"});
+        {"EBeam_range"});
+
+    //Ereac non interative
+    def = def.Define(
+        "Ereac_check_Si",
+        [&](double ebeam)
+        {
+            // std::cout << "ereac = " << vkins[slot].ReconstructBeamEnergyFromLabKinematics(evertex, theta *
+            // TMath::DegToRad()) *
+            //             (mass_target / (mass_target + mass_beam)) +
+            //       kin_particle_threshold << " MeV" << "\n";
+            return (ebeam * (mass_target / (mass_target + mass_beam)) + kin_particle_threshold);
+        },
+        {"EBeam_Si"});
+
+    //Ereac filtered
+    def = def.Define(
+        "Ereac_check_filtered", 
+        [&](double ereac, double Ex)
+        {
+            if (Ex<1 ) {
+            return ereac;
+            }
+        },
+        {"Ereac_check_Si","Eex_Si"});
+
+    //debug
+    std::ofstream streamer {"./debug_Ex.dat"};
+    def.Foreach(
+        [&](const ActRoot::MergerData& d, double Ex)
+        {
+            if(Ex>1)
+                streamer << d.fRun << " " << d.fEntry << '\n';
+        },
+        {"MergerData", "Eex_Si"});
+    streamer.close();
 
     // // Write cuts to file
     // ActRoot::CutsManager<std::string> cuts;
@@ -267,41 +328,56 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
     //{"Ereac", "Ereac_check"});
 
     // Book histograms
-    auto hEreac {def.Histo1D(HistConfig::Ereac, "EBeam")};
+    auto hEreac {def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
     auto hTheta {d.Histo1D("fThetaLight")};
     auto hElight {def.Histo1D(HistConfig::Elight, "Elight")};
-    auto hEex {def.Histo1D(HistConfig::Ex, "Eex")};
+    auto hEex_range {def.Histo1D(HistConfig::Ex, "Eex_range")};
+    auto hEex_Si {def.Histo1D(HistConfig::Ex, "Eex_Si")};
     // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
     auto hExlab {def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
-    auto hEx {def.Histo2D(HistConfig::Ex21Na, "ThetaCM", "Ex")};
-    auto hEx2 {def.Histo2D(HistConfig::Ex21Na2, "Ereac_check", "ThetaCM")};
-    auto hProj = GetProjectionX(hEx2.GetPtr(), 167, 176);
+    auto hEx {def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
+    auto hEx2_range {def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range", "ThetaCM_range")};
+    auto hEx2_Si {def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
+    auto hProj = GetProjectionX(hEx2_Si.GetPtr(), 167, 176);
     hProj->Rebin(3);
     auto hKin {def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};
+    auto hSi_vs_range {def.Histo2D(HistConfig::SiVsRange, "Eex_range","Eex_Si")};
 
     // plotting
     auto* c20 {new TCanvas("c20", "Pipe2 canvas 0")};
     c20->DivideSquare(6);
     c20->cd(1);
-    hEreac->DrawClone("colz");
+    hEex_range->DrawClone("colz");
     c20->cd(2);
-    hEex->DrawClone("colz");
-    // hProj->DrawClone("colz");
+    hEx2_range->DrawClone("colz");
     c20->cd(3);
-    hEx2->DrawClone("colz");
+    hSi_vs_range->DrawClone("colz");
     c20->cd(4);
-    hKin->DrawClone("colz");
+    hEex_Si->DrawClone("colz");
+    c20->cd(5);
+    hEx2_Si->DrawClone("colz");
+
+
+    // c20->cd(1);
+    // hEreac->DrawClone("colz");
+    // c20->cd(2);
+    // hEex->DrawClone("colz");
+    // hProj->DrawClone("colz");
+    // c20->cd(3);
+    // hEx2->DrawClone("colz");
+    // c20->cd(4);
+    // hKin->DrawClone("colz");
     // hEx->DrawClone("colz");
     // Draw
-    TGraph* g {};
-    if(light != "1H")
-    {
-        vkins[0].SetBeamEnergyAndEx(ebeam_i_MeV, 0);
-        g = vkins[0].GetKinematicLine3();
-        g->Draw("l");
-    }
-    // cuts.DrawAll();
-    c20->cd(5);
-    hProj->DrawClone("colz");
+    // TGraph* g {};
+    // if(light != "1H")
+    // {
+    //     vkins[0].SetBeamEnergyAndEx(ebeam_i_MeV, 0);
+    //     g = vkins[0].GetKinematicLine3();
+    //     g->Draw("l");
+    // }
+    // // cuts.DrawAll();
+    // c20->cd(5);
+    // hProj->DrawClone("colz");
 }
 #endif

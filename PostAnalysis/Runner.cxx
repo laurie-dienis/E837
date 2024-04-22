@@ -28,7 +28,7 @@ void Runner(TString what = "plot")
     int pressure {700}; // mbar
     if(pressure == 700)
     {
-        ebeam_i = 1.486; // MeV/u
+        ebeam_i = 1.486; // MeV/u //1.486
     }
     else if(pressure == 900)
     {

@@ -133,10 +133,10 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     TString pidfile {};
     pidfile = TString::Format("./Cuts/LightPID/pid_%s_%dmbar.root", light.c_str(), pressure);
     cuts.ReadCut(light, pidfile);
-    cuts.ReadCut("debug", "./Cuts/Debug/pid_badblob.root");
+    cuts.ReadCut("debug", "./Cuts/LightPID/pid_4He_700mbar.root");
     std::cout << BOLDCYAN << "Reading light PID in : " << pidfile << RESET << '\n';
 
-    std::ofstream streamer {"./debug_4He_900mbar.dat"};
+    std::ofstream streamer {"./debug_4He_700mbar.dat"};
     vetoed.Foreach(
         [&](const ActRoot::MergerData& d)
         {
