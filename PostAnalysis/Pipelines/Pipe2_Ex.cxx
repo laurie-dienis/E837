@@ -37,6 +37,28 @@ TH1D* GetProjectionX(TH2D* h, double xmin, double xmax, TString name = "projX_Ex
     return p;
 }
 
+void set_plot_style()
+{
+    const Int_t NRGBs = 5;
+    const Int_t NCont = 455;
+
+    Double_t stops[NRGBs] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
+    Double_t red[NRGBs]   = { 0.00, 0.00, 0.87, 1.00, 0.51 };
+    Double_t green[NRGBs] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
+    Double_t blue[NRGBs]  = { 0.51, 1.00, 0.12, 0.00, 0.00 };
+    TColor::CreateGradientColorTable(NRGBs, stops, red, green, blue, NCont);
+    gStyle->SetNumberContours(NCont);
+}
+
+double ComputeExcitationEnergy(double evertex, double ebeam, double theta, double mlight, double mheavy){
+    // std::cout << "-> Evertex : " << evertex << '\n';
+    // std::cout << "-> Ebeam : " << ebeam << '\n';
+    // std::cout << "-> theta : " << theta << '\n';
+    // std::cout << "-> mlight : " << mlight << '\n';
+    // std::cout << "-> mheavy : " << mheavy << '\n';
+    return evertex*((2*TMath::Cos(theta*TMath::DegToRad())*TMath::Sqrt((ebeam*mlight)/(evertex*mheavy)))-((mlight/mheavy)+1));
+}
+
 void Pipe2_Ex(const std::string& beam, const std::string& target, const std::string& light, double ebeam_i,
               int pressure)
 {
@@ -116,8 +138,8 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                          // std::cout << "-> ESil  : " << esil << '\n';
                          for(int i = 0; i < 15; i++)
                          {
-                             std::cout << "elight_" << i << " = " << elight << "MeV"
-                                     << "\n";
+                             // std::cout << "elight_" << i << " = " << elight << "MeV"
+                             //         << "\n";
                              ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) * elight /
                                      (4 * mass_light * std::pow(std::cos(theta), 2));
                              // std::cout << "ereac_" << i << " = " << ereac << "MeV"
@@ -153,15 +175,15 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                              // std::cout << "elossdiff" << i << " = " << (eloss - eloss_previous) * 1000 << "MeV"
                              //        << "\n\n";
                              //  Print everything together
-                             std::cout << "-> Iter    : " << i << '\n';
-                             std::cout << "   Ereac   : " << ereac << '\n';
-                             std::cout << "   RBeamF  : " << range_beam_f << '\n';
-                             std::cout << "   DistVer : " << dist_vertex << '\n';
-                             std::cout << "   DistSil : " << dist_sil << '\n';
-                             std::cout << "   ESil    : " << esil << '\n';
-                             std::cout << "   ELoss   : " << eloss << '\n';
-                             std::cout << "   ELight  : " << elight << '\n';
-                             std::cout << '\n';
+                             // std::cout << "-> Iter    : " << i << '\n';
+                             // std::cout << "   Ereac   : " << ereac << '\n';
+                             // std::cout << "   RBeamF  : " << range_beam_f << '\n';
+                             // std::cout << "   DistVer : " << dist_vertex << '\n';
+                             // std::cout << "   DistSil : " << dist_sil << '\n';
+                             // std::cout << "   ESil    : " << esil << '\n';
+                             // std::cout << "   ELoss   : " << eloss << '\n';
+                             // std::cout << "   ELight  : " << elight << '\n';
+                             // std::cout << '\n';
 
                              if(abs(eloss - eloss_previous) * 1000 < iter_threshold)
                                  break;
@@ -240,9 +262,16 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                              {
                                  return -11.;
                              }
-
+                             // std::cout << "E_4He = " << evertex << "\n";
+                             // std::cout << "Theta_4He = " << d.fThetaLight << "\n";
+                             // std::cout << "Ebeam from range = " << ebeam << "\n";
+                             double Ex2 = ComputeExcitationEnergy(evertex, ebeam, d.fThetaLight, mass_light, mass_beam);
                              vkins[slot].SetBeamEnergy(ebeam);
-                             return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad());
+                             // std::cout << "Ex from range = " << 
+                             // vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad()) << "\n";
+                             // std::cout << "Ex from range 2 = " << Ex2 << "\n";
+                             //return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad());
+                             return Ex2;
                          },
                          {"MergerData", "EBeam_range", "EVertex"});
 
@@ -255,9 +284,15 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
                              {
                                  return -11.;
                              }
-
+                             // std::cout << "Ebeam from Si = " << ebeam << "\n";
+                             double Ex2 = ComputeExcitationEnergy(evertex, ebeam, d.fThetaLight, mass_light, mass_beam);
                              vkins[slot].SetBeamEnergy(ebeam);
-                             return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad());
+                             // std::cout << "Ex from Si = " << 
+                             // vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad()) << "\n";
+                             // std::cout << "Ex from Si 2 = " << Ex2 << "\n";
+                             // std::cout << '\n';
+                             //return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight * TMath::DegToRad());
+                             return Ex2;
                          },
                          {"MergerData", "EBeam_Si", "EVertex"});
 
@@ -288,26 +323,26 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
         {"EBeam_Si"});
 
     //Ereac filtered
-    def = def.Define(
-        "Ereac_check_filtered", 
-        [&](double ereac, double Ex)
-        {
-            if (Ex<1 ) {
-            return ereac;
-            }
-        },
-        {"Ereac_check_Si","Eex_Si"});
+    // def = def.Define(
+    //     "Ereac_check_filtered", 
+    //     [&](double ereac, double Ex)
+    //     {
+    //         if (Ex<1 ) {
+    //         return ereac;
+    //         }
+    //     },
+    //     {"Ereac_check_Si","Eex_Si"});
 
     //debug
-    std::ofstream streamer {"./debug_Ex.dat"};
-    def.Foreach(
-        [&](const ActRoot::MergerData& d, double Ex)
-        {
-            if(Ex>1)
-                streamer << d.fRun << " " << d.fEntry << '\n';
-        },
-        {"MergerData", "Eex_Si"});
-    streamer.close();
+    // std::ofstream streamer {"./debug_Ex.dat"};
+    // def.Foreach(
+    //     [&](const ActRoot::MergerData& d, double Ex)
+    //     {
+    //         if(Ex>1)
+    //             streamer << d.fRun << " " << d.fEntry << '\n';
+    //     },
+    //     {"MergerData", "Eex_Si"});
+    // streamer.close();
 
     // // Write cuts to file
     // ActRoot::CutsManager<std::string> cuts;
@@ -327,12 +362,43 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
     //{ return std::abs(ereac-ereac_check); },
     //{"Ereac", "Ereac_check"});
 
+    ActRoot::CutsManager<std::string> cuts;
+    TString cutfile {};
+    cutfile = TString::Format("/home/dienis/Analysis_e837/PostAnalysis/Cuts/Debug/CorrectEx_%dmbar.root", pressure);
+    cuts.ReadCut("Ebeamcorrect", cutfile);
+    
+    cuts.ReadCut("weird", "./Cuts/Debug/false_resonance.root");
+    std::ofstream streamer {"./debug_false_resonances.dat"};
+    def.Foreach(
+        [&](const ActRoot::MergerData& d, double Ereac_check_Si, double ThetaCM_Si)
+        {
+            if(cuts.IsInside("weird", Ereac_check_Si, ThetaCM_Si))
+                // if(cut.IsInside("debug", d.fSP.Y(), d.fSP.Z()))
+                streamer << d.fRun << " " << d.fEntry << '\n';
+        },
+        {"MergerData","Ereac_check_Si","ThetaCM_Si"});
+    streamer.close();
+    
+    // def = def.Define(
+    //     "Ereac_check_filtered", 
+    //     [&](double ereac, double EBeam_range, double EBeam_Si)
+    //     {
+    //         if (cuts.IsInside("Ebeamcorrect", EBeam_range, EBeam_Si)) {
+    //         return ereac;
+    //         }
+    //     },
+    //     {"Ereac_check_range","EBeam_range","EBeam_Si"});
+    // Filter
+    auto vetoed {def.Filter([&](double EBeam_range, double EBeam_Si)
+            { return cuts.IsInside("Ebeamcorrect", EBeam_range, EBeam_Si); },
+            {"EBeam_range", "EBeam_Si"})};
+    
     // Book histograms
     auto hEreac {def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
     auto hTheta {d.Histo1D("fThetaLight")};
     auto hElight {def.Histo1D(HistConfig::Elight, "Elight")};
     auto hEex_range {def.Histo1D(HistConfig::Ex, "Eex_range")};
-    auto hEex_Si {def.Histo1D(HistConfig::Ex, "Eex_Si")};
+    auto hEex_Si {def.Histo1D(HistConfig::Ex2, "Eex_Si")};
     // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
     auto hExlab {def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
     auto hEx {def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
@@ -341,9 +407,12 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
     auto hProj = GetProjectionX(hEx2_Si.GetPtr(), 167, 176);
     hProj->Rebin(3);
     auto hKin {def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};
-    auto hSi_vs_range {def.Histo2D(HistConfig::SiVsRange, "Eex_range","Eex_Si")};
+    auto hEex_Si_vs_range {def.Histo2D(HistConfig::EexSiVsRange, "Eex_range","Eex_Si")};
+    auto hEbeam_Si_vs_range {def.Histo2D(HistConfig::EbeamSiVsRange, "EBeam_range","EBeam_Si")};
 
     // plotting
+    //gStyle->SetPalette(kCool);
+    set_plot_style();
     auto* c20 {new TCanvas("c20", "Pipe2 canvas 0")};
     c20->DivideSquare(6);
     c20->cd(1);
@@ -351,11 +420,19 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
     c20->cd(2);
     hEx2_range->DrawClone("colz");
     c20->cd(3);
-    hSi_vs_range->DrawClone("colz");
+    hEex_Si_vs_range->DrawClone("colz");
     c20->cd(4);
     hEex_Si->DrawClone("colz");
     c20->cd(5);
     hEx2_Si->DrawClone("colz");
+    cuts.DrawAll();
+    c20->cd(6);
+    hEbeam_Si_vs_range->DrawClone("colz");
+    cuts.DrawAll();
+    TLine *line = new TLine(5.,5.,13.,13.);
+    line->SetLineColor(kOrange);
+    line->SetLineWidth(2);
+    line->Draw("same");
 
 
     // c20->cd(1);

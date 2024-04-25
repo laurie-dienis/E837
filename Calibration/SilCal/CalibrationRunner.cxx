@@ -79,32 +79,33 @@ void Calibration::Runner::DoPreCalibration()
     TSpectrum spe {5};
     spe.Search(fData, fSpeSigma, "nodraw", fSpeThresh);
     auto peaks {FilterPeaks(spe)};
+    std::cout << "-> peaks  : " << peaks.size() << '\n';
     // Fit peaks to gaussians
     int idx {0};
     for(const auto& s : fSource->GetLabels())
     {
         fGaussPre[s] = std::make_shared<TF1>(("pre" + s).c_str(), "gaus", peaks[idx].first - fPreGaussWidth,
                                              peaks[idx].first + fPreGaussWidth);
-        fData->Fit(fGaussPre[s].get(), (fDebug) ? fFitOptsDebug.c_str() : fFitOpts.c_str());
+        fData->Fit(fGaussPre[s].get(), fFitOpts.c_str());
         idx++;
     }
-    // And now get precalibration using major peaks
-    fGraphPre = std::make_shared<TGraphErrors>();
-    fGraphPre->SetTitle("Precalibration graph;Channel;E_{major} [MeV]");
-    fGraphPre->SetMarkerStyle(24);
-    auto major {fSource->GetMajorPeaks()};
-    for(const auto& s : fSource->GetLabels())
-    {
-        auto mean {fGaussPre[s]->GetParameter("Mean")};
-        auto umean {fGaussPre[s]->GetParError(1)};
-        fGraphPre->SetPoint(fGraphPre->GetN(), mean, major[s]);
-        fGraphPre->SetPointError(fGraphPre->GetN() - 1, umean, 0);
-    }
-    fCalibPre = std::make_shared<TF1>("precalib", "pol1", fRange.first, fRange.second);
-    fCalibPre->SetParameters(-10, 0.001); // Initial guess needed!
-    fGraphPre->Fit(fCalibPre.get(), (fDebug ? fFitOptsGraphDebug : fFitOptsGraph).c_str());
-    // Fill new histogram
-    FillHistPre();
+    // // And now get precalibration using major peaks
+    // fGraphPre = std::make_shared<TGraphErrors>();
+    // fGraphPre->SetTitle("Precalibration graph;Channel;E_{major} [MeV]");
+    // fGraphPre->SetMarkerStyle(24);
+    // auto major {fSource->GetMajorPeaks()};
+    // for(const auto& s : fSource->GetLabels())
+    // {
+    //     auto mean {fGaussPre[s]->GetParameter("Mean")};
+    //     auto umean {fGaussPre[s]->GetParError(1)};
+    //     fGraphPre->SetPoint(fGraphPre->GetN(), mean, major[s]);
+    //     fGraphPre->SetPointError(fGraphPre->GetN() - 1, umean, 0);
+    // }
+    // fCalibPre = std::make_shared<TF1>("precalib", "pol1", fRange.first, fRange.second);
+    // fCalibPre->SetParameters(-10, 0.001); // Initial guess needed!
+    // fGraphPre->Fit(fCalibPre.get(), (fDebug ? fFitOptsGraphDebug : fFitOptsGraph).c_str());
+    // // Fill new histogram
+    // FillHistPre();
 }
 
 std::pair<double, double> Calibration::Runner::GetAmpMeanInRange(TH1D* h, double min, double max)
