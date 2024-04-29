@@ -403,7 +403,7 @@ void Pipe2_Ex(const std::string& beam, const std::string& target, const std::str
     auto hExlab {def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
     auto hEx {def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
     auto hEx2_range {def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range", "ThetaCM_range")};
-    auto hEx2_Si {def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
+    auto hEx2_Si {vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
     auto hProj = GetProjectionX(hEx2_Si.GetPtr(), 167, 176);
     hProj->Rebin(3);
     auto hKin {def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};

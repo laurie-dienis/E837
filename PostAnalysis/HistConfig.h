@@ -14,7 +14,7 @@ const TH2DModel PID {"hPID", "PID;E_{Sil} [MeV];Q_{ave} [mm^{-1}]", 300, 0, 15, 
 const TH2DModel PID_selected {
     "hPID_selected", "PID_selected;E_{Sil} [MeV];Q_{ave} [mm^{-1}]", 300, 0, 15, 800, 0, 2000};
 
-const TH2DModel Kine {"hKine", "Kine;E_{Sil} [MeV];#theta_{Lab} [#circ]", 300, 0, 40, 180, 0, 180};
+const TH2DModel Kine {"hKine", "Kine;E_{Sil} [MeV];#theta_{Lab} [#circ]", 300, 0, 100, 180, 0, 40};
 
 const TH2DModel Angle {
     "hAngle", "Angle;#theta_{3 = hits sil} [#circ];#theta_{4 = does not hit sil} [#circ]]", 400, 0, 180, 400, 0, 180};

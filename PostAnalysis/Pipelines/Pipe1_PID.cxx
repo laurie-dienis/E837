@@ -46,6 +46,7 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     TH1::AddDirectory(false);
     auto clean {[&](const ActRoot::TPCData& d)
                 {
+                    //d.Print();
                     // 1-> Fill Qproj X
                     TH1D p {"pQx", "Charge projection onto X;X [pad];Counts", 128, 0, 128};
                     // Fill from clusters
@@ -59,9 +60,10 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
                     auto xMax = p.GetBinCenter(maxBin);
                     auto yMax = p.GetBinContent(maxBin);
                     auto yMax_afterpeak = p.GetBinContent(maxBin + 20.);
-                    if(yMax_afterpeak > 100.)
+                    if(yMax_afterpeak > 10.)
                     {
                         return false;
+                        //streamer << d.fRun << " " << d.fEntry << '\n';
                     }
                     // std::cout << "xmax=" << xMax << "\n";
                     // std::cout << "ymax=" << yMax << "\n";
@@ -91,7 +93,7 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     ROOT::RDF::RNode vetoed {df};
     // Spped up executation : ony apply this heavy cut for p = 700 mbar
     // For p = 900 mbar the separation is way better by itself
-    if(pressure == 700)
+    if(pressure == 800)
         vetoed = df.Filter(clean, {"TPCData"});
     // Define ESil as alias of .front of energy vector
     vetoed = vetoed.Define("ESil", "(double)fSilEs.front()");
@@ -133,14 +135,14 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     TString pidfile {};
     pidfile = TString::Format("./Cuts/LightPID/pid_%s_%dmbar.root", light.c_str(), pressure);
     cuts.ReadCut(light, pidfile);
-    cuts.ReadCut("debug", "./Cuts/LightPID/pid_4He_700mbar.root");
+    cuts.ReadCut("debug", "./Cuts/Debug/carbon.root");
     std::cout << BOLDCYAN << "Reading light PID in : " << pidfile << RESET << '\n';
 
-    std::ofstream streamer {"./debug_4He_700mbar.dat"};
+    std::ofstream streamer {"./carbon.dat"};
     vetoed.Foreach(
         [&](const ActRoot::MergerData& d)
         {
-            if(cuts.IsInside(light, d.fSilEs.front(), d.fQave))
+            if(cuts.IsInside("debug", d.fSilEs.front(), d.fQave))
                 // if(cut.IsInside("debug", d.fSP.Y(), d.fSP.Z()))
                 streamer << d.fRun << " " << d.fEntry << '\n';
         },
