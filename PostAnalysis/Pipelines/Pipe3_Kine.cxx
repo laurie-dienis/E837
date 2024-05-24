@@ -45,7 +45,7 @@ void Pipe3_Kine(const std::string& beam, const std::string& target, const std::s
     //ROOT::RDataFrame df {"PID_Tree", E837Utils::GetFileName(1, pressure, beam, target, light)};
 
     // Read data
-    ActRoot::DataManager datman {"/home/dienis/Analysis_e837/configs/data_post.conf",
+    ActRoot::DataManager datman {"/home/laurie/Analysis_e837/configs/data_post.conf",
                                  ActRoot::ModeType::EMerge};
     auto chain {datman.GetJoinedData()};
     auto chainTpc {datman.GetJoinedData(ActRoot::ModeType::EReadTPC)};
@@ -55,7 +55,7 @@ void Pipe3_Kine(const std::string& beam, const std::string& target, const std::s
     // Read srim tables
     auto* srim {new ActPhysics::SRIM};
     srim->ReadTable("light",
-                    TString::Format("/home/dienis/Analysis_e837/Inputs/SRIM/%s_He97_butane_%dmbar.txt",
+                    TString::Format("/home/laurie/Analysis_e837/Inputs/SRIM/%s_He97_butane_%dmbar.txt",
                                     light.c_str(), pressure)
                         .Data());
     auto vetoed {d.Filter("fSilLayers.size() == 1")};
@@ -87,9 +87,9 @@ void Pipe3_Kine(const std::string& beam, const std::string& target, const std::s
             {"MergerData"})};
 
     // Book histograms
-    auto hKine {vetoed_carbon.Histo2D(HistConfig::Kine, "fThetaLight", "EVertex")};
-    auto hAngle {vetoed_carbon.Histo2D(HistConfig::Angle, "fThetaHeavy", "fThetaLight")};
-    auto hPID {vetoed_carbon.Histo2D(HistConfig::PID, "ESil", "fQave")};
+    auto hKine {vetoed.Histo2D(HistConfig::Kine, "fThetaLight", "EVertex")};
+    auto hAngle {vetoed.Histo2D(HistConfig::Angle, "fThetaHeavy", "fThetaLight")};
+    auto hPID {vetoed.Histo2D(HistConfig::PID, "ESil", "fQave")};
 
     // plotting
     set_plot_style();
@@ -133,6 +133,6 @@ void Pipe3_Kine(const std::string& beam, const std::string& target, const std::s
     g6->Draw("l");
 
     c30->cd(3);
-    hPID->DrawClone();
+    hPID->DrawClone("colz");
 }
 #endif

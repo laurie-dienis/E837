@@ -18,18 +18,26 @@ void Runner(TString what = "plot", bool standalone = true)
     // Names of particles
     std::string beam {"8He"};
     std::string target {"4He"};
-    std::string light {"6He"};
-    std::string heavy {"6He"};
+    std::string light {"4He"};
+    std::string heavy {"8He"};
     // Phase space reactions: when the heavy decays by proton or neutron emission
-    // So we have something like: 4He + n + 17N (needs to be simulated to be
-    // included as background in fits)
+    // So we have something like: 4He + n + 17N (needs to be simulated to be included as background in fits)
     int neutronPS {0}; // number of neutrons in final state
     int protonPS {0};  // number of protons in final state
-    double T1 {1.51};  // Beam energy at entrance of pad plane
+    double T1 {};   // Beam energy at entrance of pad plane // 1.525 with 1.8 //1.486 with 1.774
+    int pressure {900}; //mbar
+    if(pressure == 700)
+    {
+        T1 = 1.486; // MeV/u //1.486
+    }
+    else if(pressure == 900)
+    {
+        T1 = 1.455; // MeV/u  from run 88 ebeam_i = 1.477 MeV before 1.455
+    }
 
     std::vector<double> Eexs;
     if(neutronPS == 0 && protonPS == 0)
-        Eexs = {1.79};
+        Eexs = {0};
     else if(neutronPS > 0 && protonPS == 0)
         Eexs = {0}; // only gs for n phase space
     else if(neutronPS == 0 && protonPS > 0)
@@ -41,7 +49,7 @@ void Runner(TString what = "plot", bool standalone = true)
     {
         for(const auto& Eex : Eexs)
         {
-            Simulation_E837(beam, target, light, heavy, neutronPS, protonPS, T1, Eex, standalone);
+            Simulation_E837(beam, target, light, heavy, neutronPS, protonPS, T1, Eex, pressure, standalone);
             if(standalone)
                 break;
         }

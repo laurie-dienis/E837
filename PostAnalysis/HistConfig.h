@@ -32,7 +32,7 @@ const TH2DModel Ex21Na {
     15};
 
 const TH2DModel Ex21Na2 {
-    "hEx2", "#theta_{Lab} vs E*_{^{12}Be,elastic};E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 200, 10, 15, 200, 90,
+    "hEx2", "#theta_{Lab} vs E*_{^{12}Be,elastic};E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90, 10, 15, 90, 90,
     180};
 
 const TH2DModel EexSiVsRange {"hEex_Si_vs_range", "Ex(8He);E_{x}(8He) computed with range (MeV);E_{x}(8He) computed with Si (MeV);", 500, -2, 4, 500, -2, 4};
@@ -51,6 +51,8 @@ const TH1DModel TL {"hTL", "Track length; TL [mm]", 300, 0, 600};
 
 const TH1DModel Ereac {"hEreac", "Ereac; Ereac [MeV]", 100, 5, 20};
 
+const TH1DModel Exproj {"hExproj", "Exproj; Ex [MeV] for theta[150,160]", 90, 10, 15};
+
 const TH1DModel Ediff {"hEdiff", "Ediff; Ereac_diff [MeV]", 50, 0, 10};
 
 const TH1DModel Elight {"hElight", "Elight; Elight [MeV]", 50, 0, 100};
@@ -63,7 +65,7 @@ const TH2DModel KinSimu {"hKin", "Simulation kinematics;#theta_{Lab} [#circ];E_{
 
 const TH2DModel KinCM {"hKinCM", "CM kinematics;#theta_{CM} [#circ];E_{Vertex} [MeV]", 400, 0, 60, 400, 0, 20};
 
-const TH1DModel Ex {"hEx", "Excitation energy of 8He;E_{x} [MeV];Counts", 300, -5, 10};
+const TH1DModel Ex {"hEx", "Excitation energy of 8He;E_{x} [MeV];Counts", 300, -5, 15};
 
 const TH1DModel Ex2 {"hEx2", "Excitation energy of 8He;E_{x} [MeV];Counts", 300, -0.01, 0.01};
 

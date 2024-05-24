@@ -15,7 +15,7 @@ namespace E837Utils
 TString GetFileName(int pipe, int pressure,const std::string& beam, const std::string& target, const std::string& light,
                     const std::string& type = "tree")
 {
-    auto path {TString::Format("/home/dienis/Analysis_e837/PostAnalysis/RootFiles/Pipe%d/", pipe)};
+    auto path {TString::Format("/home/laurie/Analysis_e837/E837/PostAnalysis/RootFiles/Pipe%d/", pipe)};
     TString name {};
     name = TString::Format("%s_beam_%s_target_%s_light_%s_%d_mbar.root", type.c_str(), beam.c_str(), target.c_str(),
                                light.c_str(),pressure);

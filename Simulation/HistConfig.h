@@ -21,6 +21,10 @@ const TH1DModel TL {"hTL", "Track length; TL [mm]", 300, 0, 600};
 
 const TH2DModel Kin {"hKin", "Kinematics;#theta_{Lab} [#circ];E_{Vertex} [MeV]", 250, 0, 60, 250, 0, 20};
 
+const TH2DModel Ex12Be {
+    "hEx", "#theta_{CM} vs E*_{^{12}Be,elastic};#theta_{CM} [#circ];E*_{^{12}Be,elastic} [MeV]", 200, 50, 180, 200, 10,
+    15};
+
 const TH2DModel KinEl {"hKinEl", "Elastic kinematics;#theta_{Lab} [#circ];E_{Vertex} [MeV]", 600, 0, 180, 300, 0, 20};
 
 const TH2DModel KinSimu {"hKin", "Simulation kinematics;#theta_{Lab} [#circ];E_{Vertex} [MeV]", 400, 0, 90, 300, 0, 40};

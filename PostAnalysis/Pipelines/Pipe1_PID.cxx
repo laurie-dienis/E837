@@ -33,7 +33,7 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     // Manager of  cuts
     ActRoot::CutsManager<std::string> cuts;
     // Read data
-    ActRoot::DataManager datman {"/home/dienis/Analysis_e837/configs/data_post.conf",
+    ActRoot::DataManager datman {"/home/laurie/Analysis_e837/configs/data_post.conf",
                                  ActRoot::ModeType::EMerge};
     auto chain {datman.GetJoinedData()};
     auto chainTpc {datman.GetJoinedData(ActRoot::ModeType::EReadTPC)};
@@ -151,7 +151,7 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     if(cuts.GetCut(light))
     {
         // Filter
-        auto pid {vetoed.Filter([&](const ActRoot::MergerData& d, double ESil)
+        auto pid {noHe8.Filter([&](const ActRoot::MergerData& d, double ESil)
                                 { return cuts.IsInside(light, ESil, d.fQave); },
                                 {"MergerData", "ESil"})};
         auto filename {E837Utils::GetFileName(1, pressure, beam, target, light)};
