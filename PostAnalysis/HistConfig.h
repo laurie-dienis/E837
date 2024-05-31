@@ -51,7 +51,7 @@ const TH1DModel TL {"hTL", "Track length; TL [mm]", 300, 0, 600};
 
 const TH1DModel Ereac {"hEreac", "Ereac; Ereac [MeV]", 100, 5, 20};
 
-const TH1DModel Exproj {"hExproj", "Exproj; Ex [MeV] for theta[150,160]", 90, 10, 15};
+const TH1DModel Exproj {"hExproj", "Exproj; Ex [MeV]", 80, 11, 14};
 
 const TH1DModel Ediff {"hEdiff", "Ediff; Ereac_diff [MeV]", 50, 0, 10};
 

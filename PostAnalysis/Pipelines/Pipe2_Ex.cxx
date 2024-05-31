@@ -96,11 +96,11 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       {"MergerData"});
   streamer1.close();
 
-  //Appy normalization with simulation ?
-  bool normalization {1};
+  // Appy normalization with simulation ?
+  bool normalization{1};
   // Settings
-  double angle_min{140.};
-  double angle_max{150.};
+  double angle_min{130.};
+  double angle_max{140.};
   const double iter_threshold = 1; // keV
   double kin_particle_threshold{};
   kin_particle_threshold = 8.956; // MeV
@@ -434,7 +434,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   // normalization of the excitation energy distribution
   TFile *norm = TFile::Open(
-      TString::Format("./Input/Norm_%s_%dmbar_%.0f-%.0fdeg.root", light.c_str(), pressure, angle_min, angle_max),
+      TString::Format("./Input/Norm_%s_%dmbar_%.0f-%.0fdeg.root", light.c_str(),
+                      pressure, angle_min, angle_max),
       "READ");
   if (!norm || norm->IsZombie()) {
     // Handle error if the file cannot be opened
@@ -494,14 +495,14 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
   auto hTheta{d.Histo1D("fThetaLight")};
   auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
-  auto hEx_proj{vetoed.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
+  auto hEx_proj{def.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
-  auto hEex_range{vetoed.Histo1D(HistConfig::Ex, "ESil")}; // vetoed-def
+  auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
   auto hEex_Si{def.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
   auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
   auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
-  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range",
+  auto hEx2_range{def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range",
                               "ThetaCM_range")}; // vetoed-def
   auto hEx2_Si{
       def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
@@ -541,12 +542,22 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // }
 
   // Check compatibility
-  if (hProj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
+  // if (hProj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
+  //   std::cerr << "Histograms have incompatible binning!" << std::endl;
+  //   return;
+  // }
+  // Check compatibility
+  if (hEx_proj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
     std::cerr << "Histograms have incompatible binning!" << std::endl;
     return;
   }
+  
+  // Cloning the histogram
+  TH1D *hEx_proj_nonorm =
+      dynamic_cast<TH1D *>(hEx_proj->Clone("hEx_proj_nonorm"));
 
-  if (normalization== 1) {
+
+  if (normalization == 1) {
     hProj->Divide(hnorm_proj);
 
     // Apply normalization
@@ -570,7 +581,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   c20->cd(2);
   hEx2_range->DrawClone("colz");
   c20->cd(3);
-  hProj->DrawClone("");
+  //hProj->DrawClone("");
+  hEx_proj_nonorm->DrawClone("");
   c20->cd(4);
   hEex_Si->DrawClone("colz");
   c20->cd(5);
@@ -582,11 +594,50 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       TString::Format("Projection of Ex(12Be) between %.2f and %.2f #circ",
                       angle_min, angle_max));
   hEx_proj->DrawClone("colz");
+  gStyle->SetOptStat(0);
   // cuts.DrawAll();
-  TLine *line = new TLine(5., 5., 13., 13.);
-  line->SetLineColor(kOrange);
-  line->SetLineWidth(2);
-  // line->Draw("same");
+  //  TLine *line = new TLine(5., 5., 13., 13.);
+  //  line->SetLineColor(kOrange);
+  //  line->SetLineWidth(2);
+  //  line->Draw("same");
+
+  // Get the y-axis range of the histogram
+  double y_min = hEx_proj->GetMinimum();
+  double y_max = hEx_proj->GetMaximum();
+
+  // Create TLine objects for each vertical line
+  TLine *line1 = new TLine(11.7, y_min, 11.7, y_max);
+  TLine *line2 = new TLine(12.1, y_min, 12.1, y_max);
+  TLine *line3 = new TLine(12.4, y_min, 12.4, y_max);
+  TLine *line4 = new TLine(12.7, y_min, 12.7, y_max);
+
+  // Set line properties
+  line1->SetLineColor(kGreen);
+  line2->SetLineColor(kRed);
+  line3->SetLineColor(kBlue);
+  line4->SetLineColor(kOrange);
+  line1->SetLineWidth(2);
+  line2->SetLineWidth(2);
+  line3->SetLineWidth(2);
+  line4->SetLineWidth(2);
+
+  // Draw the lines on the canvas
+  line1->Draw("same");
+  line2->Draw("same");
+  line3->Draw("same");
+  line4->Draw("same");
+
+  // Create a legend and add entries for each line
+  TLegend *legend =
+      new TLegend(0.65, 0.65, 0.9, 0.9); // Adjust position as needed
+  legend->AddEntry(line1, "x = 11.7", "l");
+  legend->AddEntry(line2, "x = 12.1", "l");
+  legend->AddEntry(line3, "x = 12.4", "l");
+  legend->AddEntry(line4, "x = 12.7", "l");
+
+  // Set legend properties
+  legend->SetTextSize(0.05);
+  legend->Draw();
 
   // c20->cd(1);
   // hEreac->DrawClone("colz");

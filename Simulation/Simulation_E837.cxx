@@ -51,9 +51,9 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   if (!standalone)
     gROOT->SetBatch(true);
 
-  double angle_min{140.};
-  double angle_max{150.};
-  
+  double angle_min{130.};
+  double angle_max{140.};
+
   // SIGMAS
   const double sigmaSil{0.060 / 2.355};
   const double sigmaPercentBeam{0};
@@ -75,7 +75,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(1e7)};
+  const int iterations{static_cast<int>(2e6)};
 
   // ACTIVATE STRAGGLING OR NOT
   bool stragglingInGas{true};
@@ -88,7 +88,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   std::pair<double, double> eLoss0Cut{0, 1000}; //{6.5, 27.};
 
   //---- SIMULATION STARTS HERE
-  // ROOT::EnableImplicitMT();
+  ROOT::EnableImplicitMT();
 
   // timer
   TStopwatch timer{};
@@ -153,13 +153,13 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
   auto *hnorm{new TH2D{
       "hnorm",
-      "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]",
-      90, 10, 15, 90, 90, 180}};
+      "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90,
+      10, 15, 90, 90, 180}};
 
   auto *hECM{
       new TH1D{"hECM", "ECM + threshold;E_{CM} + Thresh [MeV]", 100, 8, 18}};
 
-  auto *hprojection{new TH1D{"hprojection","Ex12Be_norm",90, 10, 15}};
+  auto *hprojection{new TH1D{"hprojection", "Ex12Be_norm", 80, 11, 14}};
 
   // Load SRIM tables
   // The name of the file sets particle + medium
@@ -178,7 +178,11 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
   // Load geometry
   auto *geometry{new ActSim::Geometry()};
-  geometry->ReadGeometry("Geometry/", "e837");
+  if (pressure == 700) {
+    geometry->ReadGeometry("Geometry/", "e837_noHe8");
+  } else {
+    geometry->ReadGeometry("Geometry/", "e837");
+  }
 
   // Random generator
   auto *rand{new TRandom3()};
@@ -194,9 +198,11 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   // 3-> Weight of the generator: for three-body reactions (phase spaces) the
   // other two variables need to be weighted by this value. For binary
   // reactions, weight = 1 4-> Energy at vertex 5-> Theta in Lab frame
-  auto *outFile{new TFile(TString::Format("../PostAnalysis/Input/Norm_%s_%dmbar_%.0f-%.0fdeg.root", light.c_str(), pressure, angle_min, angle_max),
+  auto *outFile{new TFile(
+      TString::Format("../PostAnalysis/Input/Norm_%s_%dmbar_%.0f-%.0fdeg.root",
+                      light.c_str(), pressure, angle_min, angle_max),
 
-                          "recreate")};
+      "recreate")};
   auto *outTree{
       new TTree("SimulationTTree",
                 "A TTree containing only our Eex obtained by simulation")};
@@ -352,14 +358,17 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       hKinVertex->Fill(theta3Lab * TMath::RadToDeg(), Ecm + 8.96); // T3Recon);
       hEx2->Fill(Ecm + 8.96, theta3CM * TMath::RadToDeg());
       hnorm->Fill(Ecm + 8.96, theta3CM * TMath::RadToDeg());
-      if (theta3CM * TMath::RadToDeg() >= angle_min && theta3CM * TMath::RadToDeg() <= angle_max) {
-        hprojection->Fill(Ecm+8.96);
+      if (theta3CM * TMath::RadToDeg() >= angle_min &&
+          theta3CM * TMath::RadToDeg() <= angle_max) {
+        hprojection->Fill(Ecm + 8.96);
         // compute maxBinContent
-        if (hprojection->GetBinContent(hprojection->GetMaximumBin()) > maxBinContent) {
-            maxBinContent = hprojection->GetBinContent(hprojection->GetMaximumBin());
+        if (hprojection->GetBinContent(hprojection->GetMaximumBin()) >
+            maxBinContent) {
+          maxBinContent =
+              hprojection->GetBinContent(hprojection->GetMaximumBin());
         }
       }
-      //std::cout<<"maxbincontent"<<maxBinContent<<std::endl;
+      // std::cout<<"maxbincontent"<<maxBinContent<<std::endl;
       hEexAfter->Fill(EexAfter, weight);
       hSP->Fill(silPoint0InMM.Y(), silPoint0InMM.Z());
       // Fill histogram of SP with thetaCM as weight
@@ -385,23 +394,24 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     // hProj = hptoection->ProjectionX("", 50, 60);
   }
 
-//   for (int binX = 100; binX <= 110; ++binX) {
-//     for (int binY = 1; binY <= hnorm->GetNbinsY(); ++binY) {
-//       // Increment sum with the content of each bin in the range
-//       sumBinContent += hnorm->GetBinContent(binX, binY);
-//     }
-//   }
+  //   for (int binX = 100; binX <= 110; ++binX) {
+  //     for (int binY = 1; binY <= hnorm->GetNbinsY(); ++binY) {
+  //       // Increment sum with the content of each bin in the range
+  //       sumBinContent += hnorm->GetBinContent(binX, binY);
+  //     }
+  //   }
 
-//   // Print the sum of bin contents
-//   std::cout << "Sum of bin contents between bins 50 and 60: " << sumBinContent
-//             << std::endl;
-  
-//   for (Int_t bin = 1; bin <= hprojection->GetNbinsX(); ++bin) {
-//     Double_t content = hprojection->GetBinContent(bin);
-//     Double_t error = hprojection->GetBinError(bin);
-//     std::cout << "Bin " << bin << ": Content = " << content
-//               << ", Error = " << error << std::endl;
-//   }
+  //   // Print the sum of bin contents
+  //   std::cout << "Sum of bin contents between bins 50 and 60: " <<
+  //   sumBinContent
+  //             << std::endl;
+
+  //   for (Int_t bin = 1; bin <= hprojection->GetNbinsX(); ++bin) {
+  //     Double_t content = hprojection->GetBinContent(bin);
+  //     Double_t error = hprojection->GetBinError(bin);
+  //     std::cout << "Bin " << bin << ": Content = " << content
+  //               << ", Error = " << error << std::endl;
+  //   }
 
   // std::cout << "\r" << std::string(100 / percentPrint, '|') << 100 << "%";
   // std::cout.flush();
@@ -414,10 +424,10 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
   // auto hProj = GetProjectionX(hnorm.GetPtr(), 167, 176);
   // auto hprojection = hnorm->ProjectionX("", 0, 1);
-    if (maxBinContent > 0.0) {
-        hprojection->Scale(1.0 / maxBinContent);
-        hprojection->Sumw2(kFALSE);
-    }
+  if (maxBinContent > 0.0) {
+    hprojection->Scale(1.0 / maxBinContent);
+    hprojection->Sumw2(kFALSE);
+  }
 
   // SAVING
   outFile->cd();
@@ -474,14 +484,13 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     c1->cd(7);
     // hEx2->DrawClone("col");
     hprojection->DrawClone("hist");
-    std::cout<<"maxbincontent"<<maxBinContent<<std::endl;
+    std::cout << "maxbincontent" << maxBinContent << std::endl;
     c1->cd(8);
     hnorm->DrawClone("col");
 
     // hRPx->DrawNormalized();
     // hRPxSimu->SetLineColor(kRed);
     // hRPxSimu->DrawNormalized("same");
-
   }
 
   // deleting news

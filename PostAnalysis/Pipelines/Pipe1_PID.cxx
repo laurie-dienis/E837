@@ -148,10 +148,12 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
         },
         {"MergerData"});
     streamer.close();
+
+    //Cut Light PID
     if(cuts.GetCut(light))
     {
         // Filter
-        auto pid {noHe8.Filter([&](const ActRoot::MergerData& d, double ESil)
+        auto pid {vetoed.Filter([&](const ActRoot::MergerData& d, double ESil)
                                 { return cuts.IsInside(light, ESil, d.fQave); },
                                 {"MergerData", "ESil"})};
         auto filename {E837Utils::GetFileName(1, pressure, beam, target, light)};

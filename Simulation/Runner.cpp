@@ -18,8 +18,8 @@ void Runner(TString what = "plot", bool standalone = true)
     // Names of particles
     std::string beam {"8He"};
     std::string target {"4He"};
-    std::string light {"4He"};
-    std::string heavy {"8He"};
+    std::string light {"6He"};
+    std::string heavy {"6He"};
     // Phase space reactions: when the heavy decays by proton or neutron emission
     // So we have something like: 4He + n + 17N (needs to be simulated to be included as background in fits)
     int neutronPS {0}; // number of neutrons in final state
