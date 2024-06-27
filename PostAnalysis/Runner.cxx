@@ -23,9 +23,9 @@ void Runner(TString what = "plot")
 {
     std::string beam {"8He"};
     std::string target {"4He"};
-    std::string light {"6He"};
+    std::string light {"4He"};
     double ebeam_i {};
-    int pressure {900}; // mbar
+    int pressure {700}; // mbar
     if(pressure == 700)
     {
         ebeam_i = 1.486; // MeV/u //1.486
@@ -52,24 +52,35 @@ void Runner(TString what = "plot")
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + "()");
     }
+
     if(what.Contains("1"))
     {
         func = "Pipe1_PID";
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + extargs);
     }
+
     if(what.Contains("2"))
     {
         func = "Pipe2_Ex";
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + extargs);
     }
+
     if(what.Contains("3"))
     {
         func = "Pipe3_Kine";
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + extargs);
     }
+    
+    if(what.Contains("4"))
+    {
+        func = "Pipe4_NN";
+        gROOT->LoadMacro(path + func + ext);
+        gROOT->ProcessLine(func + extargs);
+    }
+
     if(what.Contains("plot"))
     {
         func = "Plotter";

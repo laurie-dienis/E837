@@ -138,12 +138,12 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     cuts.ReadCut("debug", "./Cuts/Debug/carbon.root");
     std::cout << BOLDCYAN << "Reading light PID in : " << pidfile << RESET << '\n';
 
-    std::ofstream streamer {"./carbon.dat"};
+    std::ofstream streamer {"./6He.dat"};
     vetoed.Foreach(
         [&](const ActRoot::MergerData& d)
         {
-            if(cuts.IsInside("debug", d.fSilEs.front(), d.fQave))
-                // if(cut.IsInside("debug", d.fSP.Y(), d.fSP.Z()))
+            if(cuts.IsInside(light, d.fSilEs.front(), d.fQave))
+            //if(cuts.IsInside("debug", d.fSilEs.front(), d.fQave))
                 streamer << d.fRun << " " << d.fEntry << '\n';
         },
         {"MergerData"});
@@ -153,7 +153,7 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     if(cuts.GetCut(light))
     {
         // Filter
-        auto pid {vetoed.Filter([&](const ActRoot::MergerData& d, double ESil)
+        auto pid {noHe8.Filter([&](const ActRoot::MergerData& d, double ESil)
                                 { return cuts.IsInside(light, ESil, d.fQave); },
                                 {"MergerData", "ESil"})};
         auto filename {E837Utils::GetFileName(1, pressure, beam, target, light)};

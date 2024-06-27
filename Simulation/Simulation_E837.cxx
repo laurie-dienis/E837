@@ -75,7 +75,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(2e6)};
+  const int iterations{static_cast<int>(2e7)};
 
   // ACTIVATE STRAGGLING OR NOT
   bool stragglingInGas{true};
@@ -268,8 +268,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
         T3Lab, theta3Lab)};
     // to compute geometric efficiency by CM interval and with our set reference
     // direction
-    double theta3CMBefore{
-        TMath::Pi() - kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(
+    double theta3CMBefore{kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(
                           T3Lab, theta3Lab)};
     hThetaCMAll->Fill(theta3CMBefore * TMath::RadToDeg());
     // 4-> Include thetaLab resolution to compute thetaCM and Ex
@@ -344,8 +343,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       auto T3Recon{runner.EnergyBeforeGas(eLoss0, distance0, "light")};
       auto EexAfter{kingen.GetBinaryKinematics().ReconstructExcitationEnergy(
           T3Recon, theta3Lab)};
-      auto theta3CM{TMath::Pi() -
-                    kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(
+      auto theta3CM{kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(
                         T3Recon, theta3Lab)};
 
       // fill histograms

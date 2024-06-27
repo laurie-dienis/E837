@@ -146,8 +146,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                   // TMath::DegToRad())}; std::cout << "elight_ = " <<
                   // srim->EvalInitialEnergy("light", esil, d.fTrackLength) <<
                   // "MeV\n";
-                  std::cout << "-> esil : " << esil << '\n';
-                  std::cout << "-> dist : " << d.fTrackLength << '\n';
+                  //std::cout << "-> esil : " << esil << '\n';
+                  //std::cout << "-> dist : " << d.fTrackLength << '\n';
                   return srim->EvalInitialEnergy("light", esil, d.fTrackLength);
                 },
                 {"MergerData", "ESil"});
@@ -206,15 +206,15 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           // * 1000 << "MeV"
           //        << "\n\n";
           //  Print everything together
-          // std::cout << "-> Iter    : " << i << '\n';
-          // std::cout << "   Ereac   : " << ereac << '\n';
-          // std::cout << "   RBeamF  : " << range_beam_f << '\n';
-          // std::cout << "   DistVer : " << dist_vertex << '\n';
-          // std::cout << "   DistSil : " << dist_sil << '\n';
-          // std::cout << "   ESil    : " << esil << '\n';
-          // std::cout << "   ELoss   : " << eloss << '\n';
-          // std::cout << "   ELight  : " << elight << '\n';
-          // std::cout << '\n';
+          std::cout << "-> Iter    : " << i << '\n';
+          std::cout << "   Ereac   : " << ereac << '\n';
+          std::cout << "   RBeamF  : " << range_beam_f << '\n';
+          std::cout << "   DistVer : " << dist_vertex << '\n';
+          std::cout << "   DistSil : " << dist_sil << '\n';
+          std::cout << "   ESil    : " << esil << '\n';
+          std::cout << "   ELoss   : " << eloss << '\n';
+          std::cout << "   ELight  : " << elight << '\n';
+          std::cout << '\n';
 
           if (abs(eloss - eloss_previous) * 1000 < iter_threshold)
             break;
@@ -274,9 +274,9 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         // std::cout << "ThetaCM = " << 180 -
         // (vkins[slot].ReconstructTheta3CMFromLab(evertex,
         // theta*TMath::DegToRad())*TMath::RadToDeg())<< "\n";
-        return 180 - (vkins[slot].ReconstructTheta3CMFromLab(
-                          evertex, theta * TMath::DegToRad()) *
-                      TMath::RadToDeg());
+        return (vkins[slot].ReconstructTheta3CMFromLab(
+                    evertex, theta * TMath::DegToRad()) *
+                TMath::RadToDeg());
       },
       {"EBeam_range", "EVertex", "fThetaLight"});
 
@@ -292,9 +292,9 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         // std::cout << "ThetaCM = " << 180 -
         // (vkins[slot].ReconstructTheta3CMFromLab(evertex,
         // theta*TMath::DegToRad())*TMath::RadToDeg())<< "\n";
-        return 180 - (vkins[slot].ReconstructTheta3CMFromLab(
-                          evertex, theta * TMath::DegToRad()) *
-                      TMath::RadToDeg());
+        return (vkins[slot].ReconstructTheta3CMFromLab(
+                    evertex, theta * TMath::DegToRad()) *
+                TMath::RadToDeg());
       },
       {"EBeam_Si", "EVertex", "fThetaLight"});
 
@@ -495,14 +495,14 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
   auto hTheta{d.Histo1D("fThetaLight")};
   auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
-  auto hEx_proj{def.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
+  auto hEx_proj{vetoed.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
-  auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
+  auto hEex_range{vetoed.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
   auto hEex_Si{def.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
   auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
   auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
-  auto hEx2_range{def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range",
+  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range",
                               "ThetaCM_range")}; // vetoed-def
   auto hEx2_Si{
       def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
@@ -527,19 +527,19 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   std::cout << "integral = " << hEx2_Si->Integral() << "\n";
   std::cout << "integral norm = " << hnorm->Integral() << "\n";
 
-  // Apply normalization
-  // for (int ix = 1; ix <= hEx2_Si->GetNbinsX(); ++ix) {
-  //   for (int iy = 1; iy <= hEx2_Si->GetNbinsY(); ++iy) {
-  //     double bin_content_1 = hEx2_Si->GetBinContent(ix, iy);
-  //     double bin_content_2 = hnorm->GetBinContent(ix, iy);
-  //     if (bin_content_2 != 0 && bin_content_1 != 0) {
-  //       //hEx2_Si->SetBinContent(ix,
-  //       iy,(bin_content_1/bin_content_2)*normalization_factor);
-  //     } else {
-  //       //hEx2_Si->SetBinContent(ix,iy,0);
-  //     }
-  //   }
-  // }
+  //Apply normalization
+  for (int ix = 1; ix <= hEx2_range->GetNbinsX(); ++ix) {
+    for (int iy = 1; iy <= hEx2_range->GetNbinsY(); ++iy) {
+      double bin_content_phy = hEx2_range->GetBinContent(ix, iy);
+      double bin_content_norm = hnorm->GetBinContent(ix, iy);
+      if (bin_content_norm != 0 && bin_content_phy != 0) {
+        hEx2_range->SetBinContent(ix,
+        iy,(bin_content_phy/bin_content_norm));
+      } else {
+         hEx2_range->SetBinContent(ix,iy,0);
+       }
+  }
+  }
 
   // Check compatibility
   // if (hProj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
@@ -551,11 +551,10 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
     std::cerr << "Histograms have incompatible binning!" << std::endl;
     return;
   }
-  
+
   // Cloning the histogram
   TH1D *hEx_proj_nonorm =
       dynamic_cast<TH1D *>(hEx_proj->Clone("hEx_proj_nonorm"));
-
 
   if (normalization == 1) {
     hProj->Divide(hnorm_proj);
@@ -581,7 +580,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   c20->cd(2);
   hEx2_range->DrawClone("colz");
   c20->cd(3);
-  //hProj->DrawClone("");
+  // hProj->DrawClone("");
   hEx_proj_nonorm->DrawClone("");
   c20->cd(4);
   hEex_Si->DrawClone("colz");
