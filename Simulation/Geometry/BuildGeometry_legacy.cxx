@@ -26,7 +26,7 @@ void BuildGeometry(bool draw = true)
         {9, {+2 * silicon1Y, +3 * silicon1Z}}, {10, {0, +3 * silicon1Z}}, {11, {-2 * silicon1Y, +3 * silicon1Z}}};
     ActSim::SilAssembly l0Assembly(0, silUnit, true, false);
     // offset from flange of ACTAR
-    double l0offset {7.9}; // cm
+    double l0offset {7}; // cm
     l0Assembly.SetOffsets(l0offset);
     l0Assembly.SetAssemblyPlacements(l0Placements);
 

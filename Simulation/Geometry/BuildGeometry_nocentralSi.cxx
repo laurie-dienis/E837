@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-void BuildGeometry(bool draw = true)
+void BuildGeometry_nocentralSi(bool draw = true)
 {
     // Define parameters
     // Remember that we work with HALF LENGTHS
@@ -21,9 +21,8 @@ void BuildGeometry(bool draw = true)
     // set placements for front L0
     std::map<int, std::pair<double, double>> l0Placements {
         {0, {+2 * silicon1Y, -3 * silicon1Z}}, {1, {0, -3 * silicon1Z}},  {2, {-2 * silicon1Y, -3 * silicon1Z}},
-        {3, {+2 * silicon1Y, -1 * silicon1Z}}, {4, {0, -1 * silicon1Z}},  {5, {-2 * silicon1Y, -1 * silicon1Z}},
-        {6, {6.5, +1 * silicon1Z}},  {8, {-6.5, +1 * silicon1Z}},
-        {9, {+2 * silicon1Y, +3 * silicon1Z}}, {10, {0, +3 * silicon1Z}}, {11, {-2 * silicon1Y, +3 * silicon1Z}}};
+        {3, {+2 * silicon1Y, -1 * silicon1Z}},  {5, {-2 * silicon1Y, -1 * silicon1Z}},
+        {9, {+2 * silicon1Y, +3 * silicon1Z}}, {11, {-2 * silicon1Y, +3 * silicon1Z}}};
     ActSim::SilAssembly l0Assembly(0, silUnit, true, false);
     // offset from flange of ACTAR
     double l0offset {7.9}; // cm
@@ -39,7 +38,7 @@ void BuildGeometry(bool draw = true)
 
     // SAVE GEO
     std::string path {"./"};
-    geo.WriteGeometry(path, "e837");
+    geo.WriteGeometry(path, "e837_noHe8");
 
     // and draw it if necessary
     if(draw)

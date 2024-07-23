@@ -32,7 +32,7 @@ void Runner(TString what = "plot")
     }
     else if(pressure == 900)
     {
-        ebeam_i = 1.455; // MeV/u  from run 88 ebeam_i = 1.477 MeV
+        ebeam_i = 1.455; // MeV/u  from run 88 ebeam_i = 1.477 MeV before 1.455
     }
     else
     {
@@ -52,24 +52,35 @@ void Runner(TString what = "plot")
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + "()");
     }
+
     if(what.Contains("1"))
     {
         func = "Pipe1_PID";
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + extargs);
     }
+
     if(what.Contains("2"))
     {
         func = "Pipe2_Ex";
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + extargs);
     }
+
     if(what.Contains("3"))
     {
         func = "Pipe3_Kine";
         gROOT->LoadMacro(path + func + ext);
         gROOT->ProcessLine(func + extargs);
     }
+    
+    if(what.Contains("4"))
+    {
+        func = "Pipe4_NN";
+        gROOT->LoadMacro(path + func + ext);
+        gROOT->ProcessLine(func + extargs);
+    }
+
     if(what.Contains("plot"))
     {
         func = "Plotter";
