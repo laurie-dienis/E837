@@ -59,16 +59,17 @@ bool IsInsideEllipse(const std::vector<double>& pars, double deltaT, double Rxy)
 
 void Drift()
 {
+    //gStyle->SetPalette(kCandy);
     // Enable MT
     ROOT::EnableImplicitMT();
     // Reading the data
-    const int run {28};
+    const int run {21};
     // Ellipses
     // Read data
     auto confs {ReadFile(run)};
     std::cout << "run number = " << run << '\n';
     auto* chain {new TChain("ACTAR_Merged")};
-    chain->Add(TString::Format("./../RootFiles/Merger/Merged_Run_%04d.root", run));
+    chain->Add(TString::Format("/scratch/dienis/RootFiles/Merger/Merged_Run_%04d.root", run));
 
     ROOT::RDataFrame df {*chain};
     // Only events with multiplicity 1
@@ -105,7 +106,7 @@ void Drift()
 
     // Plot!
     auto hDrift {
-        def.Histo2D({"hDrift", "Drift;#Delta t [us];R_{xy} [mm]", 600, -30, 30, 200, 0, 250}, "DeltaT", "Rxy")};
+        def.Histo2D({"hDrift", "Drift;#Deltat (#mus);R_{xy} (mm)", 600, -30, 30, 200, 50, 250}, "DeltaT", "Rxy")};
 
     // Read and process cuts
     ActRoot::CutsManager<int> cuts;
@@ -123,6 +124,8 @@ void Drift()
         graphs.push_back(node.Graph("DeltaTSqr", "RxySqr"));
         graphs.back()->SetTitle(TString::Format("Gated linear drift %d", c));
         graphs.back()->Fit("pol1", "0Q+");
+        TF1 *fitfunction = graphs.back()->GetFunction("pol1");
+        fitfunction->SetLineColor(kBlue);
         auto* f {graphs.back()->GetFunction("pol1")};
         if(!f)
             continue;
@@ -138,9 +141,9 @@ void Drift()
     for(auto& [alpha, vals] : confs)
     {
         // Lower ellipse
-        auto* low {new TEllipse {0, 0, vals[0], vals[1], 60, 120}};
+        auto* low {new TEllipse {0, 0, vals[0], vals[1], 75, 105}};
         // Upper ellipse
-        auto* up {new TEllipse {0, 0, vals[2], vals[3], 60, 120}};
+        auto* up {new TEllipse {0, 0, vals[2], vals[3], 75, 105}};
         // Push
         ells.push_back(low);
         ells.push_back(up);
@@ -163,6 +166,8 @@ void Drift()
     {
         c0->cd(c + 2);
         graphs[c]->SetMarkerStyle(6);
+        graphs[c]->GetXaxis()->SetTitle("#Deltat^{2} (#mus^{2})");
+        graphs[c]->GetYaxis()->SetTitle("R_{xy}^{2} (mm^{2})");
         graphs[c]->DrawClone("ap");
         for(auto* o : *graphs[c]->GetListOfFunctions())
             if(o)

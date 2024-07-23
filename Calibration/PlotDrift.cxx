@@ -32,17 +32,18 @@ TGraphErrors* GetMean(std::vector<TGraphErrors*> gs)
 }
 void PlotDrift()
 {
-    std::unordered_map<std::string, std::string> files {{"#alpha_{1}", "./Inputs/drift_alpha1.dat"},
-                                                        {"#alpha_{2}", "./Inputs/drift_alpha2.dat"},
-                                                        {"#alpha_{3}", "./Inputs/drift_alpha3.dat"}};
+    //gStyle->SetPalette(kPastel);
+    std::unordered_map<std::string, std::string> files {{"#alpha_{1}", "./Inputs/4He_C4H10/drift_alpha1.dat"},
+                                                        {"#alpha_{2}", "./Inputs/4He_C4H10/drift_alpha2.dat"},
+                                                        {"#alpha_{3}", "./Inputs/4He_C4H10/drift_alpha3.dat"}};
 
     // Create multigraphs
     // 1-> Alpha 1 2 3 to mean comparison
     auto* mg {new TMultiGraph};
-    mg->SetTitle(";E [V / cm / mbar];v_{drift} [cm / #mus]");
+    mg->SetTitle(";E/P [V / cm / mbar];v_{drift} [cm / #mus]");
     // 2-> Mean to simu comp
     auto* ms {new TMultiGraph};
-    ms->SetTitle(";E [V / cm / mbar];v_{drift} [cm / #mus]");
+    ms->SetTitle(";E/P [V / cm / mbar];v_{drift} [cm / #mus]");
     std::vector<TGraphErrors*> gs;
     for(const auto& [name, file] : files)
     {
@@ -58,7 +59,7 @@ void PlotDrift()
     mg->Add(gmean, "lp");
     ms->Add(gmean, "lp");
     // Simulation
-    auto* gsimu {new TGraphErrors {"./Inputs/drift_simu.dat", "%lg %lg"}};
+    auto* gsimu {new TGraphErrors {"./Inputs/4He_C4H10/drift_simu.dat", "%lg %lg"}};
     gsimu->SetNameTitle("Simu", "Simu");
     gsimu->SetLineWidth(2);
     gsimu->SetMarkerStyle(25);

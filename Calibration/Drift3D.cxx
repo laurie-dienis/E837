@@ -38,7 +38,7 @@ void Drift3D()
 
     // Get the data
     auto* chain {new TChain("ACTAR_Merged")};
-    chain->Add(TString::Format("./../RootFiles/Merger/Merged_Run_%04d.root", run));
+    chain->Add(TString::Format("/scratch/dienis/RootFiles/Merger/Merged_Run_%04d.root", run));
     // Enable MT
     ROOT::EnableImplicitMT();
     ROOT::RDataFrame df {*chain};
