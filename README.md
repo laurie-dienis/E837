@@ -21,7 +21,7 @@ actroot -m
 actplot -v
 ```
 
-## To lauch the post-analysis code : 
+## To launch the post-analysis code : 
 ```
 cd PostAnalysis/
 root 'Runner.cxx("number_of_the_pipeline")'
