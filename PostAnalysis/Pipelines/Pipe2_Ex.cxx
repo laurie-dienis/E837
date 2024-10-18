@@ -82,11 +82,38 @@ double ComputeExcitationEnergy(double evertex, double ebeam, double theta,
 
 void Pipe2_Ex(const std::string &beam, const std::string &target,
               const std::string &light, double ebeam_i, int pressure) {
-  ROOT::EnableImplicitMT();
+  //ROOT::EnableImplicitMT();
   // Read data
-  ROOT::RDataFrame d{"PID_Tree",
-                     E837Utils::GetFileName(1, pressure, beam, target, light)};
-  auto df = d.Filter("ESil>0");
+      // Open the main data file and create a RDataFrame
+    ROOT::RDataFrame d{"PID_Tree", E837Utils::GetFileName(1, pressure, beam, target, light)};
+    
+    // Apply an initial filter
+    auto df = d.Filter("ESil>0");
+
+    // Step 1: Load the labels from classification.root
+    ROOT::RDataFrame label_df("Class_Tree", "./Input/classification_900.root");
+
+    // Extract the labels into a vector
+    std::vector<long long> labels = *label_df.Take<long long>("label");
+
+    // Filter the indices where label == 1
+    std::vector<int> selected_indices;
+    for (int i = 0; i < labels.size(); ++i) {
+        if (labels[i] == 1 || labels[i] == 0) {
+            selected_indices.push_back(i);
+        }
+    }
+
+    // Step 2: Add an entry index column to the dataframe
+    auto df_with_index = df.Define("entryIndex", [](int entry) { return entry; }, {"fEntry"});
+
+    // Step 3: Define a lambda function for filtering
+    auto filter_func = [selected_indices](int entryIndex) {
+        return std::find(selected_indices.begin(), selected_indices.end(), entryIndex) != selected_indices.end();
+    };
+
+    // Apply the filter using the entry index
+    auto filtered_df = df_with_index.Filter(filter_func, {"entryIndex"});
 
   std::ofstream streamer1{"./6He.dat"};
   df.Foreach(
@@ -167,7 +194,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         // std::cout << "------------------------------" << '\n';
         // std::cout << "-> Theta : " << theta * TMath::RadToDeg() << '\n';
         // std::cout << "-> ESil  : " << esil << '\n';
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 100; i++) {
           // std::cout << "elight_" << i << " = " << elight << "MeV"
           //         << "\n";
           ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) *
@@ -186,10 +213,13 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           // std::cout << "range_f_" << i << " = " << range_beam_f << "mm"
           //   << "\n";
           dist_vertex = range_beam_i - range_beam_f;
-          // if(dist_target > 350.)
-          // {
-          //     dist_target = 250.;
+          // if (dist_vertex<-350){
+          //   dist_vertex =250.;
           // }
+          // if(dist_vertex > 350.)
+          // {
+          //     dist_vertex = 250.;
+          //  }
           dist_sil = (merger.fSP.X() - dist_vertex) / std::cos(theta);
           eloss_previous = eloss;
           auto range_vertex_sil = range_ini_sil + dist_sil;
@@ -206,7 +236,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           // * 1000 << "MeV"
           //        << "\n\n";
           //  Print everything together
-          std::cout << "-> Iter    : " << i << '\n';
+          std::cout << "\n" << "-> Iter    : " << i << '\n';
           std::cout << "   Ereac   : " << ereac << '\n';
           std::cout << "   RBeamF  : " << range_beam_f << '\n';
           std::cout << "   DistVer : " << dist_vertex << '\n';
@@ -240,6 +270,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Ex of compound nucleus
   def = def.Define("Ex",
                    [&](double ereac) {
+                      std::cout << "ex = " << (ereac * (mass_light / (mass_light + mass_beam))) +
+                            kin_particle_threshold << "MeV";
                      return (ereac * (mass_light / (mass_light + mass_beam))) +
                             kin_particle_threshold;
                    },
@@ -262,6 +294,17 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       },
       {"EVertex", "fThetaLight"});
 
+
+  //ThetaCM
+  def = def.DefineSlot("ThetaCM",
+      [&](unsigned int slot, double ereac, double evertex, float theta)
+      {
+          if (std::isnan(ereac)){return -11.;}
+          vkins[slot].SetBeamEnergy(ereac);
+          return (vkins[slot].ReconstructTheta3CMFromLab(evertex, theta*TMath::DegToRad())*TMath::RadToDeg());
+      },
+      {"Ereac", "Elight", "fThetaLight"});
+  
   // ThetaCM
   def = def.DefineSlot(
       "ThetaCM_range",
@@ -505,7 +548,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range",
                               "ThetaCM_range")}; // vetoed-def
   auto hEx2_Si{
-      def.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
+      def.Histo2D(HistConfig::Ex21Na2, "Ex", "ThetaCM")};
   auto hProj = GetProjectionX(hEx2_range.GetPtr(), angle_min, angle_max);
   // hProj->Rebin(2);
   auto hKin{def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};

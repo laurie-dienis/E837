@@ -42,6 +42,33 @@ void Pipe1_PID(const std::string& beam, const std::string& target, const std::st
     // Apply basic cut on multiplicity
     auto df {d.Filter("fSilLayers.size() == 1")}; // && fThetaLight<20")};
 
+    // Step 1: Load the labels from classification.root
+    ROOT::RDataFrame label_df("Class_Tree", "./Input/classification_900.root");
+
+    // Extract the labels into a vector
+    std::vector<long long> labels = *label_df.Take<long long>("label");
+
+    // Filter the indices where label == 1
+    std::vector<int> selected_indices;
+    for (int i = 0; i < labels.size(); ++i) {
+        if (labels[i] == 1) {
+            selected_indices.push_back(i);
+        }
+    }
+
+    // Step 2: Add an entry index column to the dataframe
+    auto df_with_index = df.Define("entryIndex", [](int entry) { return entry; }, {"fEntry"});
+
+    // Step 3: Define a lambda function for filtering
+    auto filter_func = [selected_indices](int entryIndex) {
+        return std::find(selected_indices.begin(), selected_indices.end(), entryIndex) != selected_indices.end();
+    };
+
+    // Apply the filter using the entry index
+    auto filtered_df = df_with_index.Filter(filter_func, {"entryIndex"});
+
+
+
     // Preliminary cut to gate 8He
     TH1::AddDirectory(false);
     auto clean {[&](const ActRoot::TPCData& d)

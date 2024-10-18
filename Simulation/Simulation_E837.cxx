@@ -75,7 +75,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(2e7)};
+  const int iterations{static_cast<int>(2e5)};
 
   // ACTIVATE STRAGGLING OR NOT
   bool stragglingInGas{true};
