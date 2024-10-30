@@ -194,7 +194,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         // std::cout << "------------------------------" << '\n';
         // std::cout << "-> Theta : " << theta * TMath::RadToDeg() << '\n';
         // std::cout << "-> ESil  : " << esil << '\n';
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 50; i++) {
           // std::cout << "elight_" << i << " = " << elight << "MeV"
           //         << "\n";
           ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) *
@@ -213,13 +213,13 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           // std::cout << "range_f_" << i << " = " << range_beam_f << "mm"
           //   << "\n";
           dist_vertex = range_beam_i - range_beam_f;
-          // if (dist_vertex<-350){
-          //   dist_vertex =250.;
-          // }
-          // if(dist_vertex > 350.)
-          // {
-          //     dist_vertex = 250.;
-          //  }
+          if (dist_vertex<-350){
+            dist_vertex =250.;
+          }
+          if(dist_vertex > 350.)
+          {
+              dist_vertex = 250.;
+           }
           dist_sil = (merger.fSP.X() - dist_vertex) / std::cos(theta);
           eloss_previous = eloss;
           auto range_vertex_sil = range_ini_sil + dist_sil;
@@ -305,7 +305,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       },
       {"Ereac", "Elight", "fThetaLight"});
   
-  // ThetaCM
+  // // ThetaCM
   def = def.DefineSlot(
       "ThetaCM_range",
       [&](unsigned int slot, double ereac, double evertex, float theta) {
@@ -354,7 +354,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         // std::cout << "Theta_4He = " << d.fThetaLight << "\n";
         // if (light.c_str()=="4He")
         if (strncmp(light.c_str(), "4He", strlen("4He")) == 0) {
-          std::cout << "Evertex = " << evertex << "\n";
+          //std::cout << "Evertex = " << evertex << "\n";
           Ex2 = ComputeExcitationEnergy_elastic(evertex, ebeam, d.fThetaLight,
                                                 mass_light, mass_beam);
         }
@@ -537,18 +537,18 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Book histograms
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
   auto hTheta{d.Histo1D("fThetaLight")};
-  auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
+  // auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
   auto hEx_proj{vetoed.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
   auto hEex_range{vetoed.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
   auto hEex_Si{def.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
-  auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
-  auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
-  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_range",
-                              "ThetaCM_range")}; // vetoed-def
+  // auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
+  // auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
+  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na2, "Ex",
+                              "ThetaCM")}; // vetoed-def
   auto hEx2_Si{
-      def.Histo2D(HistConfig::Ex21Na2, "Ex", "ThetaCM")};
+    vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
   auto hProj = GetProjectionX(hEx2_range.GetPtr(), angle_min, angle_max);
   // hProj->Rebin(2);
   auto hKin{def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};
@@ -565,21 +565,21 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   }
 
   // Determine the normalization factor
-  double normalization_factor = hnorm->Integral() / hEx2_Si->Integral();
+  double normalization_factor = hnorm->Integral() / hEx2_range->Integral();
   std::cout << "normalization factor = " << normalization_factor << "\n";
   std::cout << "integral = " << hEx2_Si->Integral() << "\n";
   std::cout << "integral norm = " << hnorm->Integral() << "\n";
 
   //Apply normalization
-  for (int ix = 1; ix <= hEx2_range->GetNbinsX(); ++ix) {
-    for (int iy = 1; iy <= hEx2_range->GetNbinsY(); ++iy) {
-      double bin_content_phy = hEx2_range->GetBinContent(ix, iy);
+  for (int ix = 1; ix <= hEx2_Si->GetNbinsX(); ++ix) {
+    for (int iy = 1; iy <= hEx2_Si->GetNbinsY(); ++iy) {
+      double bin_content_phy = hEx2_Si->GetBinContent(ix, iy);
       double bin_content_norm = hnorm->GetBinContent(ix, iy);
       if (bin_content_norm != 0 && bin_content_phy != 0) {
-        hEx2_range->SetBinContent(ix,
+        hEx2_Si->SetBinContent(ix,
         iy,(bin_content_phy/bin_content_norm));
       } else {
-         hEx2_range->SetBinContent(ix,iy,0);
+         hEx2_Si->SetBinContent(ix,iy,0);
        }
   }
   }
@@ -626,7 +626,9 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // hProj->DrawClone("");
   hEx_proj_nonorm->DrawClone("");
   c20->cd(4);
-  hEex_Si->DrawClone("colz");
+  hEbeam_Si_vs_range->DrawClone("colz");
+  cuts.DrawAll();
+  //hEex_Si->DrawClone("colz");
   c20->cd(5);
   hEx2_Si->DrawClone("colz");
   cuts.DrawAll();

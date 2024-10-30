@@ -25,7 +25,7 @@ void Runner(TString what = "plot", bool standalone = true)
     int neutronPS {0}; // number of neutrons in final state
     int protonPS {0};  // number of protons in final state
     double T1 {};   // Beam energy at entrance of pad plane // 1.525 with 1.8 //1.486 with 1.774
-    int pressure {900}; //mbar
+    int pressure {700}; //mbar
     if(pressure == 700)
     {
         T1 = 1.486; // MeV/u //1.486
