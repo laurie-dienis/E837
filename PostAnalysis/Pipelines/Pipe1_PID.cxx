@@ -81,7 +81,7 @@ void Pipe1_PID(const std::string &beam, const std::string &target,
   // Preliminary cut to gate 8He
   TH1::AddDirectory(false);
   auto clean{[&](const ActRoot::TPCData &d, int entryIndex) {
-    // d.Print();
+    //d.Print();
     //  1-> Fill Qproj X
     TH1D p{"pQx", "Charge projection onto X;X [pad];Counts", 128, 0, 128};
     // Fill from clusters
@@ -93,7 +93,7 @@ void Pipe1_PID(const std::string &beam, const std::string &target,
     auto maxBin = p.GetMaximumBin();
     auto xMax = p.GetBinCenter(maxBin);
     auto yMax = p.GetBinContent(maxBin);
-    auto yMax_afterpeak = p.GetBinContent(maxBin + 20.);
+    auto yMax_afterpeak = p.GetBinContent(maxBin + 1.);
     // Check the label for the current entry and fill the appropriate histogram
     if (labels[entryIndex] == 0) {
       hYMaxVsYMaxAfterPeak_Label0->Fill(xMax, yMax);

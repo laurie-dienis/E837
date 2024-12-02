@@ -174,7 +174,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                   // srim->EvalInitialEnergy("light", esil, d.fTrackLength) <<
                   // "MeV\n";
                   //std::cout << "-> esil : " << esil << '\n';
-                  //std::cout << "-> dist : " << d.fTrackLength << '\n';
+                  // std::cout << "-> evertex : " << srim->EvalInitialEnergy("light", esil, d.fTrackLength) << '\n';
                   return srim->EvalInitialEnergy("light", esil, d.fTrackLength);
                 },
                 {"MergerData", "ESil"});
@@ -236,15 +236,15 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           // * 1000 << "MeV"
           //        << "\n\n";
           //  Print everything together
-          std::cout << "\n" << "-> Iter    : " << i << '\n';
-          std::cout << "   Ereac   : " << ereac << '\n';
-          std::cout << "   RBeamF  : " << range_beam_f << '\n';
-          std::cout << "   DistVer : " << dist_vertex << '\n';
-          std::cout << "   DistSil : " << dist_sil << '\n';
-          std::cout << "   ESil    : " << esil << '\n';
-          std::cout << "   ELoss   : " << eloss << '\n';
-          std::cout << "   ELight  : " << elight << '\n';
-          std::cout << '\n';
+          // std::cout << "\n" << "-> Iter    : " << i << '\n';
+          // std::cout << "   Ereac   : " << ereac << '\n';
+          // std::cout << "   RBeamF  : " << range_beam_f << '\n';
+          // std::cout << "   DistVer : " << dist_vertex << '\n';
+          // std::cout << "   DistSil : " << dist_sil << '\n';
+          // std::cout << "   ESil    : " << esil << '\n';
+          // std::cout << "   ELoss   : " << eloss << '\n';
+          // std::cout << "   ELight  : " << elight << '\n';
+          // std::cout << '\n';
 
           if (abs(eloss - eloss_previous) * 1000 < iter_threshold)
             break;
@@ -270,8 +270,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Ex of compound nucleus
   def = def.Define("Ex",
                    [&](double ereac) {
-                      std::cout << "ex = " << (ereac * (mass_light / (mass_light + mass_beam))) +
-                            kin_particle_threshold << "MeV";
+                      // std::cout << "ex = " << (ereac * (mass_light / (mass_light + mass_beam))) +
+                      //       kin_particle_threshold << "MeV";
                      return (ereac * (mass_light / (mass_light + mass_beam))) +
                             kin_particle_threshold;
                    },
@@ -281,10 +281,36 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   def = def.Define("EBeam_range",
                    [&](const ActRoot::MergerData &d) {
+                    //  std::cout << "-> ebeam : " << srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
+                    //                    d.fThetaBeam * TMath::DegToRad())  << '\n';
                      return srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
                                        d.fThetaBeam * TMath::DegToRad());
                    },
                    {"MergerData"});
+  
+  def = def.Define("Angle_heavy",
+                   [&](const ActRoot::MergerData &d) {
+                    //  std::cout << "-> ebeam : " << srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
+                    //                    d.fThetaBeam * TMath::DegToRad())  << '\n';
+                     return d.fThetaHeavy;
+                   },
+                   {"MergerData"});
+  
+  def = def.Define("Angle_light",
+                   [&](const ActRoot::MergerData &d) {
+                    //  std::cout << "-> ebeam : " << srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
+                    //                    d.fThetaBeam * TMath::DegToRad())  << '\n';
+                     return d.fThetaLight;
+                   },
+                   {"MergerData"});
+
+  
+  def = def.DefineSlot(
+      "EVertex_calc",
+      [&](unsigned int slot, double ebeam, float theta) {
+        return ebeam*2*4*TMath::Cos(theta*TMath::DegToRad())*TMath::Cos(theta*TMath::DegToRad())/((1.+mass_beam/mass_light)*(1.+mass_beam/mass_light));
+      },
+      {"EBeam_range", "fThetaLight"});
 
   def = def.DefineSlot(
       "EBeam_Si",
@@ -346,18 +372,18 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       "Eex_range",
       [&](unsigned int slot, const ActRoot::MergerData &d, double ebeam,
           double evertex) {
-        if (std::isnan(ebeam) || ebeam < vkins[slot].GetT1Thresh()) {
+        if (std::isnan(ebeam) ) {
           return -11.;
         }
         double Ex2;
-        // std::cout << "E_4He = " << evertex << "\n";
-        // std::cout << "Theta_4He = " << d.fThetaLight << "\n";
+        //std::cout << "Theta_4He = " << d.fThetaLight << "\n";
         // if (light.c_str()=="4He")
         if (strncmp(light.c_str(), "4He", strlen("4He")) == 0) {
           //std::cout << "Evertex = " << evertex << "\n";
           Ex2 = ComputeExcitationEnergy_elastic(evertex, ebeam, d.fThetaLight,
                                                 mass_light, mass_beam);
         }
+        std::cout << "Ex = " << Ex2 << "\n";
         // if (light.c_str()=="6He"){
         if (strncmp(light.c_str(), "6He", strlen("6He")) == 0) {
           // Ex2 = ComputeExcitationEnergy_elastic(evertex, ebeam,
@@ -366,7 +392,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           Ex2 = ComputeExcitationEnergy(evertex, ebeam, d.fThetaLight,
                                         mass_light, mass_beam, mass_target);
         }
-        vkins[slot].SetBeamEnergy(ebeam);
+        //vkins[slot].SetBeamEnergy(ebeam);
         // std::cout << "Ex from range = " <<
         // vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight *
         // TMath::DegToRad()) << "\n"; std::cout << "Ex from range 2 = " << Ex2
@@ -511,9 +537,15 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   ActRoot::CutsManager<std::string> cuts;
   TString cutfile{};
   cutfile = TString::Format("Cuts/"
-                            "Debug/CorrectEx_%dmbar.root",
+                            "Debug/CorrectEx2_%dmbar.root",
                             pressure);
   cuts.ReadCut("Ebeamcorrect", cutfile);
+
+  TString cutfile2{};
+  cutfile2 = TString::Format("Cuts/"
+                            "Debug/Secondcleaning3_%dmbar.root",
+                            pressure);
+  cuts.ReadCut("Cleaning2", cutfile2);
 
   cuts.ReadCut("weird", "./Cuts/Debug/false_resonance.root");
   std::ofstream streamer{"./debug_false_resonances.dat"};
@@ -529,10 +561,17 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   // Filter
   auto vetoed{def.Filter(
-      [&](double EBeam_range, double EBeam_Si) {
-        return cuts.IsInside("Ebeamcorrect", EBeam_range, EBeam_Si);
+      [&](double EVertex_calc, double EVertex) {
+        return cuts.IsInside("Ebeamcorrect", EVertex_calc, EVertex);
       },
-      {"EBeam_range", "EBeam_Si"})};
+      {"EVertex_calc", "EVertex"})};
+  
+  auto vetoed2{vetoed.Filter(
+      [&](float Angle_light, float Angle_heavy) {
+        return cuts.IsInside("Cleaning2", Angle_light, Angle_heavy);
+      },
+      {"Angle_light", "Angle_heavy"})};
+
 
   // Book histograms
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
@@ -540,22 +579,22 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
   auto hEx_proj{vetoed.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
-  auto hEex_range{vetoed.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
+  auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
   auto hEex_Si{def.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
   // auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
   // auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
-  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na2, "Ex",
-                              "ThetaCM")}; // vetoed-def
+  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na3, "Ereac_check_range",
+                              "ThetaCM_range")}; // vetoed-def
   auto hEx2_Si{
-    vetoed.Histo2D(HistConfig::Ex21Na2, "Ereac_check_Si", "ThetaCM_Si")};
+    vetoed.Histo2D(HistConfig::Ex21Na2, "Angle_light", "Angle_heavy")};
   auto hProj = GetProjectionX(hEx2_range.GetPtr(), angle_min, angle_max);
   // hProj->Rebin(2);
   auto hKin{def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};
   auto hEex_Si_vs_range{
       def.Histo2D(HistConfig::EexSiVsRange, "Eex_range", "Eex_Si")};
   auto hEbeam_Si_vs_range{
-      def.Histo2D(HistConfig::EbeamSiVsRange, "EBeam_range", "EBeam_Si")};
+     def.Histo2D(HistConfig::EbeamSiVsRange, "EVertex_calc", "EVertex")};
 
   // Check compatibility
   if (hEx2_Si->GetNbinsX() != hnorm->GetNbinsX() or
@@ -567,22 +606,42 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Determine the normalization factor
   double normalization_factor = hnorm->Integral() / hEx2_range->Integral();
   std::cout << "normalization factor = " << normalization_factor << "\n";
-  std::cout << "integral = " << hEx2_Si->Integral() << "\n";
+  std::cout << "integral = " << hEx2_range->Integral() << "\n";
   std::cout << "integral norm = " << hnorm->Integral() << "\n";
 
+  int bin_min = hEx2_range->GetYaxis()->FindBin(angle_min);
+  int bin_max = hEx2_range->GetYaxis()->FindBin(angle_max);
+  auto hProj2_nonorm = hEx2_range->ProjectionX("hProjY", bin_min, bin_max);
+  
   //Apply normalization
-  for (int ix = 1; ix <= hEx2_Si->GetNbinsX(); ++ix) {
-    for (int iy = 1; iy <= hEx2_Si->GetNbinsY(); ++iy) {
-      double bin_content_phy = hEx2_Si->GetBinContent(ix, iy);
+  for (int ix = 1; ix <= hEx2_range->GetNbinsX(); ++ix) {
+    for (int iy = 1; iy <= hEx2_range->GetNbinsY(); ++iy) {
+      double bin_content_phy = hEx2_range->GetBinContent(ix, iy);
       double bin_content_norm = hnorm->GetBinContent(ix, iy);
       if (bin_content_norm != 0 && bin_content_phy != 0) {
-        hEx2_Si->SetBinContent(ix,
+        hEx2_range->SetBinContent(ix,
         iy,(bin_content_phy/bin_content_norm));
       } else {
-         hEx2_Si->SetBinContent(ix,iy,0);
+         hEx2_range->SetBinContent(ix,iy,0);
        }
   }
   }
+
+  auto hProj2 = hEx2_range->ProjectionX("hProjY", bin_min, bin_max);
+// Calcul des erreurs normalisées
+for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
+    double bin_content_nonorm = hProj2_nonorm->GetBinContent(i); // Contenu non normalisé
+    double bin_content_norm = hProj2->GetBinContent(i);          // Contenu normalisé
+
+    // Vérification pour éviter division par zéro
+    if (bin_content_nonorm > 0 && bin_content_norm > 0) {
+        double norm_factor = bin_content_nonorm / bin_content_norm;
+        double error = TMath::Sqrt(bin_content_nonorm) / norm_factor;
+        hProj2->SetBinError(i, error*0.01);
+    } else {
+        hProj2->SetBinError(i, 0); // Pas d'erreur si le contenu est nul
+    }
+}
 
   // Check compatibility
   // if (hProj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
@@ -637,7 +696,12 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   hEx_proj->SetTitle(
       TString::Format("Projection of Ex(12Be) between %.2f and %.2f #circ",
                       angle_min, angle_max));
-  hEx_proj->DrawClone("colz");
+  // Style et affichage
+hProj2->SetMarkerStyle(20);  // Style des points (ronds pleins)
+hProj2->SetMarkerSize(0.5); // Taille des points
+hProj2->SetLineColor(kBlue); // Couleur des lignes et barres d'erreurs
+hProj2->SetOption("E");     // Activer les barres d'erreurs
+  hProj2->DrawClone("E1");
   gStyle->SetOptStat(0);
   // cuts.DrawAll();
   //  TLine *line = new TLine(5., 5., 13., 13.);
@@ -651,43 +715,51 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   // Create TLine objects for each vertical line
   TLine *line1 = new TLine(11.7, y_min, 11.7, y_max);
-  TLine *line2 = new TLine(12.1, y_min, 12.1, y_max);
-  TLine *line3 = new TLine(12.4, y_min, 12.4, y_max);
-  TLine *line4 = new TLine(12.7, y_min, 12.7, y_max);
+  TLine *line2 = new TLine(11.85, y_min, 11.85, y_max);
+  TLine *line3 = new TLine(12.1, y_min, 12.1, y_max);
+  TLine *line4 = new TLine(12.2, y_min, 12.2, y_max);
+  TLine *line5 = new TLine(12.4, y_min, 12.4, y_max);
+  TLine *line6 = new TLine(12.7, y_min, 12.7, y_max);
 
   // Set line properties
-  line1->SetLineColor(kGreen);
-  line2->SetLineColor(kRed);
-  line3->SetLineColor(kBlue);
-  line4->SetLineColor(kOrange);
+  line1->SetLineColor(kRed);
+  line2->SetLineColor(kOrange+7);
+  line3->SetLineColor(kYellow);
+  line4->SetLineColor(kGreen-3);
+  line5->SetLineColor(kAzure+7);
+  line6->SetLineColor(kViolet-1);
+  
   line1->SetLineWidth(2);
   line2->SetLineWidth(2);
   line3->SetLineWidth(2);
   line4->SetLineWidth(2);
+  line5->SetLineWidth(2);
+  line6->SetLineWidth(2);
+  
+  line2->SetLineStyle(2);
+  line4->SetLineStyle(2);
+  line5->SetLineStyle(2);
+  line6->SetLineStyle(2);
 
   // Draw the lines on the canvas
-  line1->Draw("same");
-  line2->Draw("same");
-  line3->Draw("same");
-  line4->Draw("same");
+  // line1->Draw("same");
+  // line2->Draw("same");
+  // line3->Draw("same");
+  // line4->Draw("same");
+  // line5->Draw("same");
+  // line6->Draw("same");
 
   // Create a legend and add entries for each line
   TLegend *legend =
       new TLegend(0.65, 0.65, 0.9, 0.9); // Adjust position as needed
   legend->AddEntry(line1, "x = 11.7", "l");
-  legend->AddEntry(line2, "x = 12.1", "l");
-  legend->AddEntry(line3, "x = 12.4", "l");
-  legend->AddEntry(line4, "x = 12.7", "l");
+  legend->AddEntry(line2, "x = 11.85 ?", "l");
+  legend->AddEntry(line3, "x = 12.1", "l");
+  legend->AddEntry(line4, "x = 12.2 ?", "l");
+  legend->AddEntry(line5, "x = 12.4 ?", "l");
+  legend->AddEntry(line6, "x = 12.7 ?", "l");
 
-  // Set legend properties
-  legend->SetTextSize(0.05);
-  legend->Draw();
-
-  // c20->cd(1);
-  // hEreac->DrawClone("colz");
-  // c20->cd(2);
-  // hEex->DrawClone("colz");
-  // hProj->DrawClone("colz");
+  // Set legend properties 
   // c20->cd(3);
   // hEx2->DrawClone("colz");
   // c20->cd(4);

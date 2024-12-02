@@ -75,7 +75,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(2e5)};
+  const int iterations{static_cast<int>(1e7)};
 
   // ACTIVATE STRAGGLING OR NOT
   bool stragglingInGas{true};
@@ -179,7 +179,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   // Load geometry
   auto *geometry{new ActSim::Geometry()};
   if (pressure == 700) {
-    geometry->ReadGeometry("Geometry/", "e837_noHe8");
+    geometry->ReadGeometry("Geometry/", "e837");
   } else {
     geometry->ReadGeometry("Geometry/", "e837");
   }
