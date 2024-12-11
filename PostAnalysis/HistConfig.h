@@ -32,7 +32,7 @@ const TH2DModel Ex21Na {
     15};
 
 const TH2DModel Ex21Na2 {
-    "hEx2", "#theta_{Lab} vs E*_{^{12}Be,elastic};E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90, 0, 60, 90, 0,
+    "hEx2", "#theta_{Light} vs #theta_{Heavy};#theta_{heavy} [#circ];#theta_{light} [#circ]", 90, 0, 100, 90, 0,
     100};
 
 const TH2DModel Ex21Na3 {

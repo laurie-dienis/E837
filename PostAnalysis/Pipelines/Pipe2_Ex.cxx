@@ -64,56 +64,59 @@ double ComputeExcitationEnergy_elastic(double evertex, double ebeam,
 
 double ComputeExcitationEnergy(double evertex, double ebeam, double theta,
                                double mlight, double mbeam, double mtarget) {
-  std::cout << "-> Evertex : " << evertex << '\n';
-  std::cout << "-> Ebeam : " << ebeam << '\n';
-  std::cout << "-> theta : " << theta << '\n';
-  std::cout << "-> mlight : " << mlight << '\n';
-  std::cout << "-> mbeam : " << mbeam << '\n';
+  // std::cout << "-> Evertex : " << evertex << '\n';
+  // std::cout << "-> Ebeam : " << ebeam << '\n';
+  // std::cout << "-> theta : " << theta << '\n';
+  // std::cout << "-> mlight : " << mlight << '\n';
+  // std::cout << "-> mbeam : " << mbeam << '\n';
   double delta_m = 2 * mlight - mbeam - mtarget;
-  std::cout << "-> delta_m : " << delta_m << '\n';
+  // std::cout << "-> delta_m : " << delta_m << '\n';
   double Ex = ebeam * (1 - (mbeam / mlight)) +
               evertex * ((2 * TMath::Cos(theta * TMath::DegToRad()) *
                           TMath::Sqrt((ebeam * mbeam) / (evertex * mlight))) -
                          ((mlight / mlight) + 1)) +
               delta_m;
-  std::cout << "-> Ex : " << Ex << '\n';
+  // std::cout << "-> Ex : " << Ex << '\n';
   return Ex;
 }
 
 void Pipe2_Ex(const std::string &beam, const std::string &target,
               const std::string &light, double ebeam_i, int pressure) {
-  //ROOT::EnableImplicitMT();
-  // Read data
-      // Open the main data file and create a RDataFrame
-    ROOT::RDataFrame d{"PID_Tree", E837Utils::GetFileName(1, pressure, beam, target, light)};
-    
-    // Apply an initial filter
-    auto df = d.Filter("ESil>0");
+  // ROOT::EnableImplicitMT();
+  //  Read data
+  //  Open the main data file and create a RDataFrame
+  ROOT::RDataFrame d{"PID_Tree",
+                     E837Utils::GetFileName(1, pressure, beam, target, light)};
 
-    // Step 1: Load the labels from classification.root
-    ROOT::RDataFrame label_df("Class_Tree", "./Input/classification_900.root");
+  // Apply an initial filter
+  auto df = d.Filter("ESil>0");
 
-    // Extract the labels into a vector
-    std::vector<long long> labels = *label_df.Take<long long>("label");
+  // Step 1: Load the labels from classification.root
+  ROOT::RDataFrame label_df("Class_Tree", "./Input/classification_900.root");
 
-    // Filter the indices where label == 1
-    std::vector<int> selected_indices;
-    for (int i = 0; i < labels.size(); ++i) {
-        if (labels[i] == 1 || labels[i] == 0) {
-            selected_indices.push_back(i);
-        }
+  // Extract the labels into a vector
+  std::vector<long long> labels = *label_df.Take<long long>("label");
+
+  // Filter the indices where label == 1
+  std::vector<int> selected_indices;
+  for (int i = 0; i < labels.size(); ++i) {
+    if (labels[i] == 1 || labels[i] == 0) {
+      selected_indices.push_back(i);
     }
+  }
 
-    // Step 2: Add an entry index column to the dataframe
-    auto df_with_index = df.Define("entryIndex", [](int entry) { return entry; }, {"fEntry"});
+  // Step 2: Add an entry index column to the dataframe
+  auto df_with_index =
+      df.Define("entryIndex", [](int entry) { return entry; }, {"fEntry"});
 
-    // Step 3: Define a lambda function for filtering
-    auto filter_func = [selected_indices](int entryIndex) {
-        return std::find(selected_indices.begin(), selected_indices.end(), entryIndex) != selected_indices.end();
-    };
+  // Step 3: Define a lambda function for filtering
+  auto filter_func = [selected_indices](int entryIndex) {
+    return std::find(selected_indices.begin(), selected_indices.end(),
+                     entryIndex) != selected_indices.end();
+  };
 
-    // Apply the filter using the entry index
-    auto filtered_df = df_with_index.Filter(filter_func, {"entryIndex"});
+  // Apply the filter using the entry index
+  auto filtered_df = df_with_index.Filter(filter_func, {"entryIndex"});
 
   std::ofstream streamer1{"./6He.dat"};
   df.Foreach(
@@ -126,8 +129,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Appy normalization with simulation ?
   bool normalization{1};
   // Settings
-  double angle_min{130.};
-  double angle_max{140.};
+  double angle_min{134.};
+  double angle_max{144.};
   const double iter_threshold = 1; // keV
   double kin_particle_threshold{};
   kin_particle_threshold = 8.956; // MeV
@@ -173,82 +176,150 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                   // TMath::DegToRad())}; std::cout << "elight_ = " <<
                   // srim->EvalInitialEnergy("light", esil, d.fTrackLength) <<
                   // "MeV\n";
-                  //std::cout << "-> esil : " << esil << '\n';
-                  // std::cout << "-> evertex : " << srim->EvalInitialEnergy("light", esil, d.fTrackLength) << '\n';
+                  // std::cout << "-> esil : " << esil << '\n';
+                  // std::cout << "-> evertex : " <<
+                  // srim->EvalInitialEnergy("light", esil, d.fTrackLength) <<
+                  // '\n';
                   return srim->EvalInitialEnergy("light", esil, d.fTrackLength);
                 },
                 {"MergerData", "ESil"});
+
+  // Iterative process for determining Ereac and Elight
+  // def = def.Define(
+  //     "iter",
+  //     [&](const ActRoot::MergerData &merger, double esil, double esil_guess)
+  //     {
+  //       std::pair<double, double> ret;
+  //       double ereac, range_beam_f, dist_vertex, dist_sil, eloss,
+  //           eloss_previous;
+  //       double elight = esil_guess;
+  //       std::cout << "esilguess = " << elight << "MeV"
+  //                 << "\n";
+  //       double theta = merger.fThetaLight * TMath::DegToRad();
+  //       double range_ini_sil = srim->EvalDirect("light", esil);
+  //       // std::cout << "------------------------------" << '\n';
+  //       // std::cout << "-> Theta : " << theta * TMath::RadToDeg() << '\n';
+  //       // std::cout << "-> ESil  : " << esil << '\n';
+  //       for (int i = 0; i < 10; i++) {
+  //          std::cout << "elight_" << i << " = " << elight << "MeV"
+  //                  << "\n";
+  //         ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) *
+  //                 elight / (4 * mass_light * std::pow(std::cos(theta), 2));
+  //         // std::cout << "ereac_" << i << " = " << ereac << "MeV"
+  //         //   << "\n";
+  //         if (ereac>ebeam_i_MeV) {
+  //           elight = 1.;
+  //           ereac = 1;
+  //           break;
+  //         }
+  //         //     ereac = ebeam_i_MeV;
+  //         // }
+  //         range_beam_f = srim->EvalDirect("beam", ereac);
+  //         // std::cout << "range_f_" << i << " = " << range_beam_f << "mm"
+  //         //   << "\n";
+  //         dist_vertex = range_beam_i - range_beam_f;
+  //         if (dist_vertex<-350){
+  //           dist_vertex =250.;
+  //         }
+  //         if(dist_vertex > 350.)
+  //         {
+  //             dist_vertex = 250.;
+  //          }
+  //         dist_sil = (merger.fSP.X() - dist_vertex) / std::cos(theta);
+  //         eloss_previous = eloss;
+  //         auto range_vertex_sil = range_ini_sil + dist_sil;
+  //         double elight_new = srim->EvalInverse("light", range_vertex_sil);
+  //         // Absolute value?
+  //         eloss = esil - elight;
+  //         double alpha = 0.05;
+  //         elight = alpha * elight_new + (1 - alpha) * elight;
+  //         // eloss = esil - srim->EvalInverse("light", dist_sil);
+  //         // std::cout << "eloss_" << i << " = " << eloss << "MeV"
+  //         //      << "\n";
+  //         // elight = esil + eloss;
+  //         // std::cout << "elight_" << i << " = " << elight << "MeV"
+  //         //          << "\n";
+  //         // std::cout << "elossdiff" << i << " = " << (eloss -
+  //         eloss_previous)
+  //         // * 1000 << "MeV"
+  //         //        << "\n\n";
+  //         //  Print everything together
+  //         std::cout << "\n" << "-> Iter    : " << i << '\n';
+  //         std::cout << "   Ereac   : " << ereac << '\n';
+  //         std::cout << "   RBeamF  : " << range_beam_f << '\n';
+  //         std::cout << "   DistVer : " << dist_vertex << '\n';
+  //         std::cout << "   DistSil : " << dist_sil << '\n';
+  //         std::cout << "   ESil    : " << esil << '\n';
+  //         std::cout << "   ELoss   : " << eloss << '\n';
+  //         std::cout << "   ELight  : " << elight << '\n';
+  //         std::cout << '\n';
+
+  //         if (abs(eloss - eloss_previous) * 1000 < iter_threshold)
+  //           break;
+  //       }
+  //       ret.first = elight;
+  //       ret.second = ereac;
+  //       return ret;
+  //     },
+  //     {"MergerData", "ESil", "EVertex"});
 
   // Iterative process for determining Ereac and Elight
   def = def.Define(
       "iter",
       [&](const ActRoot::MergerData &merger, double esil, double esil_guess) {
         std::pair<double, double> ret;
-        double ereac, range_beam_f, dist_vertex, dist_sil, eloss,
+        double range_beam_i = srim->EvalDirect("beam", ebeam_i_MeV);
+        std::cout << "range_i = " << range_beam_i << "mm"
+                  << "\n";
+        double ereac, range_beam_f, dist_target, dist_sil, eloss,
             eloss_previous;
         double elight = esil_guess;
-        // std::cout << "esilguess = " << elight << "MeV"
-        //           << "\n";
-        double theta = merger.fThetaLight * TMath::DegToRad();
-        double range_ini_sil = srim->EvalDirect("light", esil);
-        // std::cout << "------------------------------" << '\n';
-        // std::cout << "-> Theta : " << theta * TMath::RadToDeg() << '\n';
-        // std::cout << "-> ESil  : " << esil << '\n';
-        for (int i = 0; i < 50; i++) {
-          // std::cout << "elight_" << i << " = " << elight << "MeV"
-          //         << "\n";
+        double theta = std::abs(merger.fThetaLight) * TMath::DegToRad();
+        double range_ini_silicon = srim->EvalDirect("light", esil);
+        std::cout << "theta = " << theta * TMath::RadToDeg() << "deg"
+                  << "\n";
+        for (int i = 0; i < 200; i++) {
+          std::cout << "elight_" << i << " = " << elight << "MeV"
+                    << "\n";
           ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) *
                   elight / (4 * mass_light * std::pow(std::cos(theta), 2));
-          // std::cout << "ereac_" << i << " = " << ereac << "MeV"
-          //   << "\n";
-          // if (ereac>ebeam_i_MeV) {
-          //   elight = -11.;
-          //   ereac = -11;
-          //   break;
-          // }
-
-          //     ereac = ebeam_i_MeV;
-          // }
-          range_beam_f = srim->EvalDirect("beam", ereac);
-          // std::cout << "range_f_" << i << " = " << range_beam_f << "mm"
-          //   << "\n";
-          dist_vertex = range_beam_i - range_beam_f;
-          if (dist_vertex<-350){
-            dist_vertex =250.;
+          std::cout << "ereac_" << i << " = " << ereac << "MeV"
+                    << "\n";
+          if (ereac < 3.457) {
+            ereac = 3.5;
+            break;
           }
-          if(dist_vertex > 350.)
-          {
-              dist_vertex = 250.;
-           }
-          dist_sil = (merger.fSP.X() - dist_vertex) / std::cos(theta);
+          range_beam_f = srim->EvalDirect("beam", ereac);
+          std::cout << "range_f_" << i << " = " << range_beam_f << "mm"
+                    << "\n";
+          dist_target = range_beam_i - range_beam_f;
+          std::cout << "dist_target_" << i << " = " << dist_target << "mm"
+                    << "\n";
+          if (dist_target < -350) {
+            dist_target = 250.;
+          }
+          if (dist_target > 350.) {
+            dist_target = 250.;
+          }
+          dist_sil = (merger.fSP.X() - dist_target) / std::cos(theta);
           eloss_previous = eloss;
-          auto range_vertex_sil = range_ini_sil + dist_sil;
-          elight = srim->EvalInverse("light", range_vertex_sil);
-          // Absolute value?
-          eloss = esil - elight;
           // eloss = esil - srim->EvalInverse("light", dist_sil);
-          // std::cout << "eloss_" << i << " = " << eloss << "MeV"
-          //      << "\n";
-          // elight = esil + eloss;
-          // std::cout << "elight_" << i << " = " << elight << "MeV"
-          //          << "\n";
-          // std::cout << "elossdiff" << i << " = " << (eloss - eloss_previous)
-          // * 1000 << "MeV"
-          //        << "\n\n";
-          //  Print everything together
-          // std::cout << "\n" << "-> Iter    : " << i << '\n';
-          // std::cout << "   Ereac   : " << ereac << '\n';
-          // std::cout << "   RBeamF  : " << range_beam_f << '\n';
-          // std::cout << "   DistVer : " << dist_vertex << '\n';
-          // std::cout << "   DistSil : " << dist_sil << '\n';
-          // std::cout << "   ESil    : " << esil << '\n';
-          // std::cout << "   ELoss   : " << eloss << '\n';
-          // std::cout << "   ELight  : " << elight << '\n';
-          // std::cout << '\n';
-
+          std::cout << "eloss_" << i << " = " << eloss << "MeV"
+                    << "\n";
+          double range_vertex_silicon = range_ini_silicon + dist_sil;
+          double elight_new = srim->EvalInverse("light", range_vertex_silicon);
+          eloss = esil - elight;
+          double alpha = 0.05;
+          elight = alpha * elight_new + (1 - alpha) * elight;
+          std::cout << "elight_" << i << " = " << elight << "MeV"
+                    << "\n";
+          std::cout << "elossdiff" << i << " = "
+                    << (eloss - eloss_previous) * 1000 << "MeV"
+                    << "\n\n";
           if (abs(eloss - eloss_previous) * 1000 < iter_threshold)
             break;
         }
+        std::cout << "\n\n\n";
         ret.first = elight;
         ret.second = ereac;
         return ret;
@@ -270,8 +341,9 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Ex of compound nucleus
   def = def.Define("Ex",
                    [&](double ereac) {
-                      // std::cout << "ex = " << (ereac * (mass_light / (mass_light + mass_beam))) +
-                      //       kin_particle_threshold << "MeV";
+                     // std::cout << "ex = " << (ereac * (mass_light /
+                     // (mass_light + mass_beam))) +
+                     //       kin_particle_threshold << "MeV";
                      return (ereac * (mass_light / (mass_light + mass_beam))) +
                             kin_particle_threshold;
                    },
@@ -281,34 +353,41 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   def = def.Define("EBeam_range",
                    [&](const ActRoot::MergerData &d) {
-                    //  std::cout << "-> ebeam : " << srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
-                    //                    d.fThetaBeam * TMath::DegToRad())  << '\n';
+                     //  std::cout << "-> ebeam : " << srim->Slow("beam",
+                     //  ebeam_i_MeV, d.fRP.X(),
+                     //                    d.fThetaBeam * TMath::DegToRad())  <<
+                     //                    '\n';
                      return srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
                                        d.fThetaBeam * TMath::DegToRad());
                    },
                    {"MergerData"});
-  
+
   def = def.Define("Angle_heavy",
                    [&](const ActRoot::MergerData &d) {
-                    //  std::cout << "-> ebeam : " << srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
-                    //                    d.fThetaBeam * TMath::DegToRad())  << '\n';
+                     //  std::cout << "-> ebeam : " << srim->Slow("beam",
+                     //  ebeam_i_MeV, d.fRP.X(),
+                     //                    d.fThetaBeam * TMath::DegToRad())  <<
+                     //                    '\n';
                      return d.fThetaHeavy;
                    },
                    {"MergerData"});
-  
+
   def = def.Define("Angle_light",
                    [&](const ActRoot::MergerData &d) {
-                    //  std::cout << "-> ebeam : " << srim->Slow("beam", ebeam_i_MeV, d.fRP.X(),
-                    //                    d.fThetaBeam * TMath::DegToRad())  << '\n';
+                     //  std::cout << "-> ebeam : " << srim->Slow("beam",
+                     //  ebeam_i_MeV, d.fRP.X(),
+                     //                    d.fThetaBeam * TMath::DegToRad())  <<
+                     //                    '\n';
                      return d.fThetaLight;
                    },
                    {"MergerData"});
 
-  
   def = def.DefineSlot(
       "EVertex_calc",
       [&](unsigned int slot, double ebeam, float theta) {
-        return ebeam*2*4*TMath::Cos(theta*TMath::DegToRad())*TMath::Cos(theta*TMath::DegToRad())/((1.+mass_beam/mass_light)*(1.+mass_beam/mass_light));
+        return ebeam * 2 * 4 * TMath::Cos(theta * TMath::DegToRad()) *
+               TMath::Cos(theta * TMath::DegToRad()) /
+               ((1. + mass_beam / mass_light) * (1. + mass_beam / mass_light));
       },
       {"EBeam_range", "fThetaLight"});
 
@@ -320,17 +399,20 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       },
       {"EVertex", "fThetaLight"});
 
-
-  //ThetaCM
-  def = def.DefineSlot("ThetaCM",
-      [&](unsigned int slot, double ereac, double evertex, float theta)
-      {
-          if (std::isnan(ereac)){return -11.;}
-          vkins[slot].SetBeamEnergy(ereac);
-          return (vkins[slot].ReconstructTheta3CMFromLab(evertex, theta*TMath::DegToRad())*TMath::RadToDeg());
+  // ThetaCM
+  def = def.DefineSlot(
+      "ThetaCM",
+      [&](unsigned int slot, double ereac, double evertex, float theta) {
+        if (std::isnan(ereac)) {
+          return -11.;
+        }
+        vkins[slot].SetBeamEnergy(ereac);
+        return (vkins[slot].ReconstructTheta3CMFromLab(
+                    evertex, theta * TMath::DegToRad()) *
+                TMath::RadToDeg());
       },
       {"Ereac", "Elight", "fThetaLight"});
-  
+
   // // ThetaCM
   def = def.DefineSlot(
       "ThetaCM_range",
@@ -372,19 +454,19 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       "Eex_range",
       [&](unsigned int slot, const ActRoot::MergerData &d, double ebeam,
           double evertex) {
-        if (std::isnan(ebeam) ) {
+        if (std::isnan(ebeam)) {
           return -11.;
         }
         double Ex2;
-        //std::cout << "Theta_4He = " << d.fThetaLight << "\n";
-        // if (light.c_str()=="4He")
+        // std::cout << "Theta_4He = " << d.fThetaLight << "\n";
+        //  if (light.c_str()=="4He")
         if (strncmp(light.c_str(), "4He", strlen("4He")) == 0) {
-          //std::cout << "Evertex = " << evertex << "\n";
+          // std::cout << "Evertex = " << evertex << "\n";
           Ex2 = ComputeExcitationEnergy_elastic(evertex, ebeam, d.fThetaLight,
                                                 mass_light, mass_beam);
         }
-        std::cout << "Ex = " << Ex2 << "\n";
-        // if (light.c_str()=="6He"){
+        // std::cout << "Ex = " << Ex2 << "\n";
+        //  if (light.c_str()=="6He"){
         if (strncmp(light.c_str(), "6He", strlen("6He")) == 0) {
           // Ex2 = ComputeExcitationEnergy_elastic(evertex, ebeam,
           // d.fThetaLight,
@@ -392,13 +474,13 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
           Ex2 = ComputeExcitationEnergy(evertex, ebeam, d.fThetaLight,
                                         mass_light, mass_beam, mass_target);
         }
-        //vkins[slot].SetBeamEnergy(ebeam);
-        // std::cout << "Ex from range = " <<
-        // vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight *
-        // TMath::DegToRad()) << "\n"; std::cout << "Ex from range 2 = " << Ex2
-        // << "\n";
-        // return vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight
-        // * TMath::DegToRad());
+        // vkins[slot].SetBeamEnergy(ebeam);
+        //  std::cout << "Ex from range = " <<
+        //  vkins[slot].ReconstructExcitationEnergy(evertex, d.fThetaLight *
+        //  TMath::DegToRad()) << "\n"; std::cout << "Ex from range 2 = " << Ex2
+        //  << "\n";￼tionEnergy(evertex,
+        //  d.fThetaLight
+        //  * TMath::DegToRad());
         return Ex2;
       },
       {"MergerData", "EBeam_range", "EVertex"});
@@ -461,46 +543,6 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                    },
                    {"ThetaCM_range", "Ereac_check_range"});
 
-  // Ereac filtered
-  //  def = def.Define(
-  //      "Ereac_check_filtered",
-  //      [&](double ereac, double Ex)
-  //      {
-  //          if (Ex<1 ) {
-  //          return ereac;
-  //          }
-  //      },
-  //      {"Ereac_check_Si","Eex_Si"});
-
-  // debug
-  //  std::ofstream streamer {"./debug_Ex.dat"};
-  //  def.Foreach(
-  //      [&](const ActRoot::MergerData& d, double Ex)
-  //      {
-  //          if(Ex>1)
-  //              streamer << d.fRun << " " << d.fEntry << '\n';
-  //      },
-  //      {"MergerData", "Eex_Si"});
-  //  streamer.close();
-
-  // // Write cuts to file
-  // ActRoot::CutsManager<std::string> cuts;
-  // cuts.ReadCut("debug", "./Cuts/Debug/kinematics.root");
-  // std::ofstream streamer {"./debug_kinematics.dat"};
-  // def.Foreach(
-  //     [&](const ActRoot::MergerData& d, double evertex)
-  //     {
-  //         if(cuts.IsInside("debug", d.fThetaLight, evertex))
-  //             streamer << d.fRun << " " << d.fEntry << '\n';
-  //     },
-  //     {"MergerData", "EVertex"});
-  // streamer.close();
-  // diff between the two methods
-  // def = def.Define("Ereac_diff",
-  //[&](double ereac, double ereac_check)
-  //{ return std::abs(ereac-ereac_check); },
-  //{"Ereac", "Ereac_check"});
-
   // normalization of the excitation energy distribution
   TFile *norm = TFile::Open(
       TString::Format("./Input/Norm_%s_%dmbar_%.0f-%.0fdeg.root", light.c_str(),
@@ -537,14 +579,14 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   ActRoot::CutsManager<std::string> cuts;
   TString cutfile{};
   cutfile = TString::Format("Cuts/"
-                            "Debug/CorrectEx2_%dmbar.root",
+                            "Debug/CorrectEx_%dmbar.root",
                             pressure);
   cuts.ReadCut("Ebeamcorrect", cutfile);
 
   TString cutfile2{};
   cutfile2 = TString::Format("Cuts/"
-                            "Debug/Secondcleaning3_%dmbar.root",
-                            pressure);
+                             "Debug/Secondcleaning6_%dmbar.root",
+                             pressure);
   cuts.ReadCut("Cleaning2", cutfile2);
 
   cuts.ReadCut("weird", "./Cuts/Debug/false_resonance.root");
@@ -565,36 +607,35 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         return cuts.IsInside("Ebeamcorrect", EVertex_calc, EVertex);
       },
       {"EVertex_calc", "EVertex"})};
-  
+
   auto vetoed2{vetoed.Filter(
       [&](float Angle_light, float Angle_heavy) {
         return cuts.IsInside("Cleaning2", Angle_light, Angle_heavy);
       },
-      {"Angle_light", "Angle_heavy"})};
-
+      {"Angle_heavy", "Angle_light"})};
 
   // Book histograms
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
   auto hTheta{d.Histo1D("fThetaLight")};
   // auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
-  auto hEx_proj{vetoed.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
+  auto hEx_proj{vetoed2.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
-  auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
+  auto hEex_range{vetoed2.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
   auto hEex_Si{def.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
   // auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
   // auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
-  auto hEx2_range{vetoed.Histo2D(HistConfig::Ex21Na3, "Ereac_check_range",
-                              "ThetaCM_range")}; // vetoed-def
+  auto hEx2_range{vetoed2.Histo2D(HistConfig::Ex21Na3, "Ereac_check_range",
+                                  "ThetaCM_range")}; // vetoed-def
   auto hEx2_Si{
-    vetoed.Histo2D(HistConfig::Ex21Na2, "Angle_light", "Angle_heavy")};
+      vetoed.Histo2D(HistConfig::Ex21Na2, "Angle_heavy", "Angle_light")};
   auto hProj = GetProjectionX(hEx2_range.GetPtr(), angle_min, angle_max);
   // hProj->Rebin(2);
   auto hKin{def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};
   auto hEex_Si_vs_range{
       def.Histo2D(HistConfig::EexSiVsRange, "Eex_range", "Eex_Si")};
   auto hEbeam_Si_vs_range{
-     def.Histo2D(HistConfig::EbeamSiVsRange, "EVertex_calc", "EVertex")};
+      def.Histo2D(HistConfig::EbeamSiVsRange, "EVertex_calc", "EVertex")};
 
   // Check compatibility
   if (hEx2_Si->GetNbinsX() != hnorm->GetNbinsX() or
@@ -611,37 +652,43 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   int bin_min = hEx2_range->GetYaxis()->FindBin(angle_min);
   int bin_max = hEx2_range->GetYaxis()->FindBin(angle_max);
-  auto hProj2_nonorm = hEx2_range->ProjectionX("hProjY", bin_min, bin_max);
-  
-  //Apply normalization
+  TH2F *hEx2_range_original = (TH2F *)hEx2_range->Clone("hEx2_range_original");
+  auto hProj2_nonorm = hEx2_range_original->ProjectionX("hProjY_nonorm", bin_min, bin_max);
+
+  // Apply normalization
   for (int ix = 1; ix <= hEx2_range->GetNbinsX(); ++ix) {
     for (int iy = 1; iy <= hEx2_range->GetNbinsY(); ++iy) {
       double bin_content_phy = hEx2_range->GetBinContent(ix, iy);
       double bin_content_norm = hnorm->GetBinContent(ix, iy);
       if (bin_content_norm != 0 && bin_content_phy != 0) {
-        hEx2_range->SetBinContent(ix,
-        iy,(bin_content_phy/bin_content_norm));
+        hEx2_range->SetBinContent(ix, iy, (bin_content_phy / bin_content_norm)*50);
       } else {
-         hEx2_range->SetBinContent(ix,iy,0);
-       }
-  }
-  }
-
-  auto hProj2 = hEx2_range->ProjectionX("hProjY", bin_min, bin_max);
-// Calcul des erreurs normalisées
-for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
-    double bin_content_nonorm = hProj2_nonorm->GetBinContent(i); // Contenu non normalisé
-    double bin_content_norm = hProj2->GetBinContent(i);          // Contenu normalisé
-
-    // Vérification pour éviter division par zéro
-    if (bin_content_nonorm > 0 && bin_content_norm > 0) {
-        double norm_factor = bin_content_nonorm / bin_content_norm;
-        double error = TMath::Sqrt(bin_content_nonorm) / norm_factor;
-        hProj2->SetBinError(i, error*0.01);
-    } else {
-        hProj2->SetBinError(i, 0); // Pas d'erreur si le contenu est nul
+        hEx2_range->SetBinContent(ix, iy, 0);
+      }
     }
-}
+  }
+
+  auto hProj2 = hEx2_range->ProjectionX("hProjY_norm", bin_min, bin_max);
+  // Calcul des erreurs normalisées
+  for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
+      double bin_content_nonorm = hProj2_nonorm->GetBinContent(i); // Contenu
+      //non normalisé 
+      double bin_content_norm = hProj2->GetBinContent(i); //
+      //Contenu normalisé
+
+      // Vérification pour éviter division par zéro
+      if (bin_content_nonorm > 0 && bin_content_norm > 0) {
+          double norm_factor = bin_content_nonorm / bin_content_norm;
+          std::cout << "bin content no norm = " << bin_content_nonorm << "\n";
+          std::cout << "norm factor = " << norm_factor << "\n";
+          double error = TMath::Sqrt(bin_content_nonorm) / norm_factor;
+          std::cout << "error no norm = " << TMath::Sqrt(bin_content_nonorm)  << "\n";
+          std::cout << "error norm = " << error  << "\n\n";
+          hProj2->SetBinError(i, error);
+      } else {
+          hProj2->SetBinError(i, 0); // Pas d'erreur si le contenu est nul
+      }
+  }
 
   // Check compatibility
   // if (hProj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
@@ -672,7 +719,8 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
       }
     }
   }
-
+  
+  gErrorIgnoreLevel = kError; 
   // plotting
   set_plot_style();
   auto *c20{new TCanvas("c20", "Pipe2 canvas 0")};
@@ -683,31 +731,84 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
   hEx2_range->DrawClone("colz");
   c20->cd(3);
   // hProj->DrawClone("");
-  hEx_proj_nonorm->DrawClone("");
+  // hEx_proj_nonorm->SetLineColor(kAzure-2); // Couleur des lignes et barres
+  // d'erreurs
+  hEx_proj_nonorm->DrawClone("colz");
+  // hEx_proj_nonorm->DrawClone("E1 SAME");
   c20->cd(4);
   hEbeam_Si_vs_range->DrawClone("colz");
   cuts.DrawAll();
-  //hEex_Si->DrawClone("colz");
+  // hEex_Si->DrawClone("colz");
   c20->cd(5);
   hEx2_Si->DrawClone("colz");
+  ActPhysics::Kinematics kin1{beam, target, light, ebeam_i_MeV};
+  auto *g1{kin1.GetTheta3vs4Line()};
+  g1->SetLineColor(kOrange + 6);
+  g1->Draw("l");
+  ActPhysics::Kinematics kin2{beam, "12C", "6He", ebeam_i_MeV};
+  auto *g2{kin2.GetTheta3vs4Line()};
+  g2->SetLineColor(kViolet - 4);
+  g2->Draw("l");
   cuts.DrawAll();
   c20->cd(6);
   // hEbeam_Si_vs_range->DrawClone("colz");
-  hEx_proj->SetTitle(
+  hProj2->SetTitle(
       TString::Format("Projection of Ex(12Be) between %.2f and %.2f #circ",
                       angle_min, angle_max));
-  // Style et affichage
-hProj2->SetMarkerStyle(20);  // Style des points (ronds pleins)
-hProj2->SetMarkerSize(0.5); // Taille des points
-hProj2->SetLineColor(kBlue); // Couleur des lignes et barres d'erreurs
-hProj2->SetOption("E");     // Activer les barres d'erreurs
-  hProj2->DrawClone("E1");
-  gStyle->SetOptStat(0);
-  // cuts.DrawAll();
-  //  TLine *line = new TLine(5., 5., 13., 13.);
-  //  line->SetLineColor(kOrange);
-  //  line->SetLineWidth(2);
-  //  line->Draw("same");
+// Créer le graphe avec erreurs
+int nBins = hProj2->GetNbinsX();
+TGraphErrors *graph = new TGraphErrors(nBins);
+
+for (int i = 1; i <= nBins; ++i) {
+    double x = hProj2->GetBinCenter(i);          // Coordonnée X (centre de la bin)
+    double y = hProj2->GetBinContent(i);         // Coordonnée Y (contenu de la bin)
+    double ex = 0;                               // Pas d'erreur sur X
+    double ey = hProj2->GetBinError(i);          // Erreur sur Y
+    graph->SetPoint(i - 1, x, y);                // Ajouter le point
+    graph->SetPointError(i - 1, ex, ey);         // Ajouter les barres d'erreurs
+}
+
+// Personnalisation des barres d'erreurs et des points
+graph->SetMarkerStyle(20);  // Style des points (cercles pleins)
+graph->SetMarkerSize(0.5);  // Taille des points
+graph->SetMarkerColor(kBlack); // Couleur des points et des barres d'erreurs
+graph->SetLineColor(kBlack);   // Couleur des barres d'erreurs
+graph->SetLineWidth(2);
+graph->SetTitle(
+      TString::Format("Proj of Ex between %.2f and %.2f#circ",
+                      angle_min, angle_max));
+graph->GetXaxis()->SetTitle("Ex_12Be (MeV)");
+
+// Dessiner uniquement les barres d'erreurs et les points
+graph->Draw("AP"); // "A" pour axes, "P" pour points et barres d'erreurs
+
+
+// Utiliser TGraphSmooth pour ajouter une courbe lissée
+TGraphSmooth *graphSmooth = new TGraphSmooth("smooth");
+TGraph *smoothGraph = graphSmooth->SmoothKern(graph, "normal", 0.1); // méthode Kernel
+
+// Personnalisation de la courbe lissée
+smoothGraph->SetLineColor(kRed);  // Couleur de la courbe (bleu)
+smoothGraph->SetLineWidth(2);      // Épaisseur de la courbe
+
+// Dessiner la courbe lissée par-dessus
+smoothGraph->Draw("C SAME"); // "C" pour courbe lisse, "SAME" pour superposer
+
+// // Ajouter une courbe spline par-dessus
+// TGraph *curve = new TGraph(nBins);
+// for (int i = 1; i <= nBins; ++i) {
+//     double x = hProj2->GetBinCenter(i);
+//     double y = hProj2->GetBinContent(i);
+//     curve->SetPoint(i - 1, x, y); // Ajouter les points pour la courbe
+// }
+
+// // Personnalisation de la courbe
+// curve->SetLineColor(kRed);  // Couleur de la courbe (rouge)
+// curve->SetLineWidth(2);     // Épaisseur de la courbe
+
+// // Dessiner la courbe spline par-dessus
+// curve->Draw("C SAME"); // "C" pour courbe lisse, "SAME" pour superposer
+
 
   // Get the y-axis range of the histogram
   double y_min = hEx_proj->GetMinimum();
@@ -723,19 +824,19 @@ hProj2->SetOption("E");     // Activer les barres d'erreurs
 
   // Set line properties
   line1->SetLineColor(kRed);
-  line2->SetLineColor(kOrange+7);
+  line2->SetLineColor(kOrange + 7);
   line3->SetLineColor(kYellow);
-  line4->SetLineColor(kGreen-3);
-  line5->SetLineColor(kAzure+7);
-  line6->SetLineColor(kViolet-1);
-  
+  line4->SetLineColor(kGreen - 3);
+  line5->SetLineColor(kAzure + 7);
+  line6->SetLineColor(kViolet - 1);
+
   line1->SetLineWidth(2);
   line2->SetLineWidth(2);
   line3->SetLineWidth(2);
   line4->SetLineWidth(2);
   line5->SetLineWidth(2);
   line6->SetLineWidth(2);
-  
+
   line2->SetLineStyle(2);
   line4->SetLineStyle(2);
   line5->SetLineStyle(2);
