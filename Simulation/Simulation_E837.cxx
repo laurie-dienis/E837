@@ -144,6 +144,10 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       0, 500, 300, 0, 500}};
 
   auto *hEBeam{new TH2D{"hEBeam", "Range angle", 300, 0, 180, 300, 0, 500}};
+  
+  auto *hPID{
+      new TH2D{"hPID", "PID;E[MeV];Eloss [MeV]",
+               100, 0, 15, 100,0, 0.1}};
 
   auto *hEx2{
       new TH2D{"hEx2",
@@ -179,7 +183,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   // Load geometry
   auto *geometry{new ActSim::Geometry()};
   if (pressure == 700) {
-    geometry->ReadGeometry("Geometry/", "e837");
+    geometry->ReadGeometry("Geometry/", "e837_noHe8");
   } else {
     geometry->ReadGeometry("Geometry/", "e837");
   }
@@ -249,7 +253,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
                                                // in u = total kinetic energy
     // Slow down it according to vertex position
     if (slowDownBeam)
-      TBeam = runner.EnergyAfterGas(TBeam, vertex.X(), "beam");
+      TBeam = runner.EnergyAfterGas(TBeam, vertex.second.X(), "beam");
     // runner energy functions return std::nan when the particle is stopped in
     // the gas! if nan (aka stopped in gas, continue) if not stopped but beam
     // energy below kinematic threshold, continue
@@ -292,7 +296,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     ROOT::Math::XYZVector direction{
         TMath::Cos(theta3Lab), TMath::Sin(theta3Lab) * TMath::Sin(phi3Lab),
         TMath::Sin(theta3Lab) * TMath::Cos(phi3Lab)};
-    auto vertexInGeoFrame{runner.DisplacePointToTGeometryFrame(vertex)};
+    auto vertexInGeoFrame{runner.DisplacePointToTGeometryFrame(vertex.second)};
     ROOT::Math::XYZPoint silPoint0{};
     int silType0{};
     int silIndex0{};
@@ -315,6 +319,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     // Range-distance evaluation for light particle
     hRPxRange->Fill(distance0, lightRange);
     hEBeam->Fill(theta3Lab * TMath::RadToDeg(), lightRange);
+    auto eloss{srim->EvalInverse("light", distance0)};
     // if particle doest reach the silicon
     if (lightRange < distance0)
       hSPCut->Fill(silPoint0InMM.Y(), silPoint0InMM.Z());
@@ -348,7 +353,9 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
       // fill histograms
       // hThetaCM->Fill(theta3CM * TMath::RadToDeg());
-      hThetaCM->Fill(theta3CMBefore * TMath::RadToDeg());
+      // TF1 *fit = new TF1("fit","[0]*(x^[1])",10, -0.5);
+      // hPID->Fill(T3Lab, eloss/distance0);
+      // hThetaCM->Fill(theta3CMBefore * TMath::RadToDeg());
       hEexBefore->Fill(
           EexBefore,
           weight); // with the weight from each TGenPhaseSpace::Generate()
@@ -373,7 +380,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       hSPTheta->Fill(silPoint0InMM.Y(), silPoint0InMM.Z(),
                      theta3CM * TMath::RadToDeg());
       // RP histogram
-      hRP->Fill(vertex.X(), vertex.Y());
+      hRP->Fill(vertex.second.X(), vertex.second.Y());
       // Beam energy at RP
       // hEBeam->Fill(theta3Lab*TMath::RadToDeg(),lightRange);
       // CM energy
@@ -385,8 +392,8 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       theta3CM_tree = theta3CM * TMath::RadToDeg();
       EVertex_tree = T3Recon;
       theta3Lab_tree = theta3Lab * TMath::RadToDeg();
-      rpx_tree = vertex.X();
-      hRPxSimu->Fill(vertex.X());
+      rpx_tree = vertex.second.X();
+      hRPxSimu->Fill(vertex.second.X());
       outTree->Fill();
     }
     // hProj = hptoection->ProjectionX("", 50, 60);
@@ -472,7 +479,8 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     hECM->DrawClone();
     c1->cd(5);
     // hSPTheta->DrawClone("colz");
-    hEBeam->DrawClone("colz");
+    // hPID->Fit("fit");
+    // hPID->DrawClone("colz");
     c1->cd(6);
     auto *fdummy{new TF1{"fdummy", "x", 0, 500}};
     hRPxRange->DrawClone("colz");

@@ -26,7 +26,7 @@ std::vector<TH1D*> ReadData()
     for(int s = 0; s < nsil; s++)
     {
         hs.push_back(
-            new TH1D {TString::Format("hSil%d", s), TString::Format("Calibrated Sil %d;E_{Sil} [MeV]", s), 500, 0, 10});
+            new TH1D {TString::Format("hSil%d", s), TString::Format("Calibrated Sil %d;E_{Sil} [MeV]", s), 800, 0, 8154});
     }
 
     // Fill the histograms
@@ -38,8 +38,17 @@ std::vector<TH1D*> ReadData()
                 return;
             for(int i = 0, size = d.fSiE.at(layer).size(); i < size; i++)
             {
+            	// std::cout << "size = " << d.fSiE.at(layer).size()<<"\n";
                 auto N {d.fSiN.at(layer).at(i)};
+                // std::cout << "N = " << N<<"\n";;
                 auto E {d.fSiE.at(layer).at(i)};
+                // std::cout << "E = " << E<<"\n";;
+                            // Skip invalid indices
+            if (N == 12) 
+            {
+                std::cerr << "Warning: Invalid index N = " << N << ", skipping...\n";
+                continue;
+            }
                 hs[N]->Fill(E);
             }
         },
@@ -51,35 +60,38 @@ void e837()
 {
     auto hs {ReadData()};
 
-    // Create source
-    Calibration::Source source;
-    source.Print();
-    std::cout << "number = " << hs.size();
+// Create source
+Calibration::Source source;
+source.Print();
+std::cout << "number = " << hs.size();
 
-    auto* h2rebin {(TH1D*)hs[2]->Clone("h2Rebin")};
-    h2rebin->Rebin(2);
-    auto* h7rebin {(TH1D*)hs[7]->Clone("h7rebin")};
-    h7rebin->Rebin(2);
-    // Si_3
-    Calibration::Runner runner2 {&source, h2rebin, hs[2],false};
-    // Si_4
-    Calibration::Runner runner7 {&source, h7rebin, hs[7],false};
-    //Run for all
-    for(auto& runner : {&runner2})
+std::vector<Calibration::Runner> runners;
+
+for (int i = 0; i <= 11; ++i) {
+    if (i == 4) continue; // Exclude hs[4]
+
+    auto* hRebin = (TH1D*)hs[i]->Clone(("h" + std::to_string(i) + "Rebin").c_str());
+    hRebin->Rebin(1);
+
+    // Create Calibration::Runner for the current histogram
+    runners.emplace_back(&source, hRebin, hs[i], false);
+}
+
+// Run for all created runners
+for (int i = 0; i < runners.size(); ++i) {
+    std::cout << "\n--- Detector " << i << " ---" << std::endl; // Add space and detector number
+    runners[i].SetRange(4700, 6700);
+    runners[i].DoIt(); // Perform calibration (this should print parameters)
+    runners[i].Draw(new TCanvas);
+    runners[i].PrintRes();
+}
+
+    //Plot
+    auto* c0 {new TCanvas {"c0", "Silicon canvas"}};
+    c0->DivideSquare(hs.size());
+    for(int i = 0; i < hs.size(); i++)
     {
-        runner->SetRange(4000, 7000);
-        runner->DoIt();
-        //runner->Draw(new TCanvas);
-        //runner->PrintRes();
+       c0->cd(i + 1);
+       hs[i]->Draw();
     }
-
-
-    // Plot
-    //auto* c0 {new TCanvas {"c0", "Silicon canvas"}};
-    //c0->DivideSquare(hs.size());
-    //for(int i = 0; i < hs.size(); i++)
-    //{
-    //    c0->cd(i + 1);
-    //    hs[i]->Draw();
-    //}
 }

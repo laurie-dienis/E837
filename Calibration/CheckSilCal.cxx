@@ -11,7 +11,7 @@
 void CheckSilCal()
 {
     // Read the data
-    ROOT::RDataFrame df {"ACTAR_Data", "/scratch/dienis/RootFiles/Data/Data_Run_0094_Calibrated.root"};
+    ROOT::RDataFrame df {"ACTAR_Data", "/scratch/dienis/RootFiles/Data/Data_Run_0094_Calibrated_old.root"};
     ROOT::RDataFrame raw {"ACTAR_Data", "/scratch/dienis/RootFiles/Data/Data_Run_0094_Uncalibrated.root"};
 
     // Set parameters
@@ -21,7 +21,8 @@ void CheckSilCal()
     for(int s = 0; s < nsil; s++)
     {
         hs.push_back(
-            new TH1D {TString::Format("hSil%d", s), TString::Format("Calibrated Sil %d;E_{Sil} [MeV]", s), 500, 0, 10});
+            new TH1D {TString::Format("hSil%d", s), TString::Format("Calibrated Sil %d;E_{Sil} [MeV]", s), 300, 4.8, 6.2});
+
         hraw.push_back(
             new TH1D {TString::Format("hRaw%d", s), TString::Format("Raw Sil %d;E_{Sil} [MeV]", s), 800, 0, 8164});
     }
@@ -36,7 +37,9 @@ void CheckSilCal()
             for(int i = 0, size = d.fSiE.at(layer).size(); i < size; i++)
             {
                 auto N {d.fSiN.at(layer).at(i)};
+                //std::cout << "N = " << N<<"\n";;
                 auto E {d.fSiE.at(layer).at(i)};
+                //std::cout << "E = " << E<<"\n";;
                 hs[N]->Fill(E);
             }
         },
@@ -57,14 +60,14 @@ void CheckSilCal()
 
     // Plot
     auto* c0 {new TCanvas {"c0", "Check sil canvas"}};
-    c0->DivideSquare(hs.size());
+    c0->Divide(3,4);
     for(int s = 0; s < hs.size(); s++)
     {
         c0->cd(s + 1);
         hs[s]->Draw();
     }
     auto* c1 {new TCanvas {"c1", "Raw sil canvas"}};
-    c1->DivideSquare(hraw.size());
+    c1->Divide(3,4);
     for(int s = 0; s < hraw.size(); s++)
     {
         c1->cd(s + 1);

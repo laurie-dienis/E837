@@ -509,16 +509,21 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   // Ereac non interative
   def = def.Define("Ereac_check_range",
-                   [&](double ebeam) {
+                   [&](double ebeam, double Ex) {
                      // std::cout << "ereac = " <<
                      // vkins[slot].ReconstructBeamEnergyFromLabKinematics(evertex,
                      // theta * TMath::DegToRad()) *
                      //             (mass_target / (mass_target + mass_beam)) +
                      //       kin_particle_threshold << " MeV" << "\n";
+                     if (Ex>-2){
                      return (ebeam * (mass_target / (mass_target + mass_beam)) +
                              kin_particle_threshold);
+                     }
+                     else {
+                    return -10.;
+                     }
                    },
-                   {"EBeam_range"});
+                   {"EBeam_range","Eex_range"});
 
   // Ereac non interative
   def = def.Define("Ereac_check_Si",
@@ -585,7 +590,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   TString cutfile2{};
   cutfile2 = TString::Format("Cuts/"
-                             "Debug/Secondcleaning6_%dmbar.root",
+                             "Debug/Secondcleaning2_%dmbar.root",
                              pressure);
   cuts.ReadCut("Cleaning2", cutfile2);
 
@@ -613,6 +618,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         return cuts.IsInside("Cleaning2", Angle_light, Angle_heavy);
       },
       {"Angle_heavy", "Angle_light"})};
+
 
   // Book histograms
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
@@ -745,7 +751,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   auto *g1{kin1.GetTheta3vs4Line()};
   g1->SetLineColor(kOrange + 6);
   g1->Draw("l");
-  ActPhysics::Kinematics kin2{beam, "12C", "6He", ebeam_i_MeV};
+  ActPhysics::Kinematics kin2{beam, "12C", "8He", ebeam_i_MeV};
   auto *g2{kin2.GetTheta3vs4Line()};
   g2->SetLineColor(kViolet - 4);
   g2->Draw("l");

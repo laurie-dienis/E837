@@ -1,0 +1,17 @@
+{
+//========= Macro generated from object: CUTG/Graph
+//========= by ROOT version6.32.00
+   
+   TCutG *cutg = new TCutG("CUTG",6);
+   cutg->SetVarX("Ebeam");
+   cutg->SetVarY("");
+   cutg->SetTitle("Graph");
+   cutg->SetFillStyle(1000);
+   cutg->SetPoint(0,7.78608,5.77666);
+   cutg->SetPoint(1,8.73491,4.69721);
+   cutg->SetPoint(2,15.2473,9.93253);
+   cutg->SetPoint(3,15.6354,11.9295);
+   cutg->SetPoint(4,7.91547,5.77666);
+   cutg->SetPoint(5,7.78608,5.77666);
+   cutg->Draw("");
+}

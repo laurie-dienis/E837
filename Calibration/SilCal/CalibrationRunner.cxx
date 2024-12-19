@@ -29,9 +29,9 @@ bool Calibration::Runner::DoIt()
     // Run precalibration
     DoPreCalibration();
     // And fine calibration
-    //DoFineCalibration();
+    DoFineCalibration();
     // Final plots
-    //DoFinalPlots();
+    DoFinalPlots();
     if(fDebug)
         Debug();
     return true;
@@ -80,6 +80,11 @@ void Calibration::Runner::DoPreCalibration()
     spe.Search(fData, fSpeSigma, "nodraw", fSpeThresh);
     auto peaks {FilterPeaks(spe)};
     std::cout << "-> peaks  : " << peaks.size() << '\n';
+
+    if (peaks.empty()){
+        std::cerr<< "Error no peak found"<<std::endl;
+        return;
+    }
     // Fit peaks to gaussians
     int idx {0};
     for(const auto& s : fSource->GetLabels())
@@ -89,23 +94,23 @@ void Calibration::Runner::DoPreCalibration()
         fData->Fit(fGaussPre[s].get(), fFitOpts.c_str());
         idx++;
     }
-    // // And now get precalibration using major peaks
-    // fGraphPre = std::make_shared<TGraphErrors>();
-    // fGraphPre->SetTitle("Precalibration graph;Channel;E_{major} [MeV]");
-    // fGraphPre->SetMarkerStyle(24);
-    // auto major {fSource->GetMajorPeaks()};
-    // for(const auto& s : fSource->GetLabels())
-    // {
-    //     auto mean {fGaussPre[s]->GetParameter("Mean")};
-    //     auto umean {fGaussPre[s]->GetParError(1)};
-    //     fGraphPre->SetPoint(fGraphPre->GetN(), mean, major[s]);
-    //     fGraphPre->SetPointError(fGraphPre->GetN() - 1, umean, 0);
-    // }
-    // fCalibPre = std::make_shared<TF1>("precalib", "pol1", fRange.first, fRange.second);
-    // fCalibPre->SetParameters(-10, 0.001); // Initial guess needed!
-    // fGraphPre->Fit(fCalibPre.get(), (fDebug ? fFitOptsGraphDebug : fFitOptsGraph).c_str());
-    // // Fill new histogram
-    // FillHistPre();
+    // And now get precalibration using major peaks
+    fGraphPre = std::make_shared<TGraphErrors>();
+    fGraphPre->SetTitle("Precalibration graph;Channel;E_{major} [MeV]");
+    fGraphPre->SetMarkerStyle(24);
+    auto major {fSource->GetMajorPeaks()};
+    for(const auto& s : fSource->GetLabels())
+    {
+        auto mean {fGaussPre[s]->GetParameter("Mean")};
+        auto umean {fGaussPre[s]->GetParError(1)};
+        fGraphPre->SetPoint(fGraphPre->GetN(), mean, major[s]);
+        fGraphPre->SetPointError(fGraphPre->GetN() - 1, umean, 0);
+    }
+    fCalibPre = std::make_shared<TF1>("precalib", "pol1", fRange.first, fRange.second);
+    fCalibPre->SetParameters(-10, 0.001); // Initial guess needed!
+    fGraphPre->Fit(fCalibPre.get(), (fDebug ? fFitOptsGraphDebug : fFitOptsGraph).c_str());
+    // Fill new histogram
+    FillHistPre();
 }
 
 std::pair<double, double> Calibration::Runner::GetAmpMeanInRange(TH1D* h, double min, double max)
@@ -153,7 +158,7 @@ void Calibration::Runner::DoFineCalibration()
     // Get all data
     auto [energies, sigmas, brs] {fSource->GetComponents()};
     // Declare functions
-    for(int s = 0; s < fSource->GetLabels().size(); s++)
+    for (int s = 0; s < fSource->GetLabels().size(); s++)
     {
         auto name {fSource->GetLabels()[s]};
         TString sumf {};
@@ -161,7 +166,8 @@ void Calibration::Runner::DoFineCalibration()
         // Get maximum energy and br
         double maxE {*std::max_element(energies[s].begin(), energies[s].end())};
         double maxBR {*std::max_element(brs[s].begin(), brs[s].end())};
-        for(int p = 0; p < energies[s].size(); p++)
+
+        for (int p = 0; p < energies[s].size(); p++)
         {
             auto satellite {TString::Format(" + [0] * %f * TMath::Exp(-0.5 * TMath::Power((x - ([1] - %f)) / [2], 2))",
                                             brs[s][p] / maxBR, TMath::Abs(energies[s][p] - maxE))};
@@ -171,7 +177,7 @@ void Calibration::Runner::DoFineCalibration()
         fGaussFine[name] = std::make_shared<TF1>(("fine" + name).c_str(), sumf);
         // Increase number of plotting points
         fGaussFine[name]->SetNpx(1000);
-        // Set range form source
+        // Set range from source
         auto [min, max] {fSource->GetLimits(name)};
         fGaussFine[name]->SetRange(min, max);
         // Set some limits on parameters to avoid wrong fits
@@ -182,22 +188,27 @@ void Calibration::Runner::DoFineCalibration()
         auto [mean, amp] {GetAmpMeanInRange(fHistPre.get(), min, max)};
         fGaussFine[name]->SetParameters(amp, mean, sigmas[s].back());
     }
+
     // Fit!
-    for(auto& [name, f] : fGaussFine)
+    for (auto& [name, f] : fGaussFine)
+    {
         fHistPre->Fit(f.get(), (fDebug ? fFitOptsDebug : fFitOpts).c_str());
+    }
 
     // And get finer calibration
     fGraphFine = std::make_shared<TGraphErrors>();
     fGraphFine->SetTitle("Fine calibration graph;E_{pre} [MeV];E_{fine} [MeV]");
     fGraphFine->SetMarkerStyle(25);
     auto major {fSource->GetMajorPeaks()};
-    for(const auto& [name, f] : fGaussFine)
+
+    for (const auto& [name, f] : fGaussFine)
     {
         auto mean {f->GetParameter(1)};
         auto umean {f->GetParError(1)};
         fGraphFine->SetPoint(fGraphFine->GetN(), major[name], mean);
         fGraphFine->SetPointError(fGraphFine->GetN() - 1, umean, 0);
     }
+
     fCalibFine = std::make_shared<TF1>("finecalib", "pol1", 0, fHistOpts.first);
     fCalibFine->SetParameters(0., 1);
     fGraphFine->Fit(fCalibFine.get(), (fDebug ? fFitOptsGraphDebug : fFitOptsGraph).c_str());
@@ -211,12 +222,16 @@ void Calibration::Runner::DoFineCalibration()
     FillHistFinal();
 }
 
+
 void Calibration::Runner::InitFinalCalib()
 {
     fCalibFinal =
         std::make_shared<TF1>("finalcalib", "pol1", fData->GetXaxis()->GetXmin(), fData->GetXaxis()->GetXmax());
     double a {fCalibFine->GetParameter(0) + fCalibFine->GetParameter(1) * fCalibPre->GetParameter(0)};
     double b {fCalibFine->GetParameter(1) * fCalibPre->GetParameter(1)};
+    // Print calibration function parameters
+    std::cout << "Final calibration parameters: intercept=" << a
+              << ", slope=" << b << std::endl;
     fCalibFinal->SetParameters(a, b);
     fCalibFinal->SetTitle("Final calibration;Channel;E [MeV]");
 }
