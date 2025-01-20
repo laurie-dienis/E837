@@ -51,8 +51,8 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   if (!standalone)
     gROOT->SetBatch(true);
 
-  double angle_min{130.};
-  double angle_max{140.};
+  double angle_min{134.};
+  double angle_max{144.};
 
   // SIGMAS
   const double sigmaSil{0.060 / 2.355};
@@ -75,7 +75,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(1e7)};
+  const int iterations{static_cast<int>(1e8)};
 
   // ACTIVATE STRAGGLING OR NOT
   bool stragglingInGas{true};
@@ -182,8 +182,8 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
   // Load geometry
   auto *geometry{new ActSim::Geometry()};
-  if (pressure == 700) {
-    geometry->ReadGeometry("Geometry/", "e837_noHe8");
+  if (pressure == 900) {
+    geometry->ReadGeometry("Geometry/", "e837");
   } else {
     geometry->ReadGeometry("Geometry/", "e837");
   }

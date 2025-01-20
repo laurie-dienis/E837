@@ -41,7 +41,7 @@ const TH2DModel Ex21Na3 {
 
 const TH2DModel EexSiVsRange {"hEex_Si_vs_range", "Ex(8He);E_{x}(8He) computed with range (MeV);E_{x}(8He) computed with Si (MeV);", 500, -2, 4, 500, -2, 4};
 
-const TH2DModel EbeamSiVsRange {"hEbeam_Si_vs_range", "Ebeam;E_{beam} computed with range (MeV);E_{beam} computed with Si (MeV);", 500, 0, 20, 500, 0, 20};
+const TH2DModel EbeamSiVsRange {"hEbeam_Si_vs_range", "EVertex_check ;E_{vertex} calc [MeV];E_{vertex} computed with Si [MeV];", 500, 2, 14, 500, 2, 14};
 
 const TH2DModel PIDTwo {"hPIDUncal", "PIDTWO;E_{Sil} [Channel];Q_{ave} [mm^{-1}];", 500, 0, 15000, 1000, 0, 3000};
 
@@ -69,7 +69,7 @@ const TH2DModel KinSimu {"hKin", "Simulation kinematics;#theta_{Lab} [#circ];E_{
 
 const TH2DModel KinCM {"hKinCM", "CM kinematics;#theta_{CM} [#circ];E_{Vertex} [MeV]", 400, 0, 60, 400, 0, 20};
 
-const TH1DModel Ex {"hEx", "Excitation energy of 8He;E_{x} [MeV];Counts", 300, -5, 15};
+const TH1DModel Ex {"hEx", "Excitation energy of 8He;E_{x} [MeV];Counts", 300, -5, 5};
 
 const TH1DModel Ex2 {"hEx2", "Excitation energy of 8He;E_{x} [MeV];Counts", 300, -0.01, 0.01};
 

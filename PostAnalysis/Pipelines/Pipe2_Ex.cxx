@@ -49,14 +49,18 @@ void set_plot_style() {
   gStyle->SetNumberContours(NCont);
 }
 
+double ComputeExcitationEnergy_angle(double ebeam, double theta_heavy,
+                                       double theta_light, double mlight,
+                                       double mheavy) {
+  double evertex = ebeam * (1-(mheavy/(mlight+mheavy))) + 0.5*mheavy*TMath::Cos(theta_heavy*TMath::DegToRad());
+  return evertex * ((2 * TMath::Cos(theta_light * TMath::DegToRad()) *
+                     TMath::Sqrt((ebeam * mlight) / (evertex * mheavy))) -
+                    ((mlight / mheavy) + 1));
+}
+
 double ComputeExcitationEnergy_elastic(double evertex, double ebeam,
                                        double theta, double mlight,
                                        double mheavy) {
-  // std::cout << "-> Evertex : " << evertex << '\n';
-  // std::cout << "-> Ebeam : " << ebeam << '\n';
-  // std::cout << "-> theta : " << theta << '\n';
-  // std::cout << "-> mlight : " << mlight << '\n';
-  // std::cout << "-> mheavy : " << mheavy << '\n';
   return evertex * ((2 * TMath::Cos(theta * TMath::DegToRad()) *
                      TMath::Sqrt((ebeam * mlight) / (evertex * mheavy))) -
                     ((mlight / mheavy) + 1));
@@ -128,9 +132,9 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   // Appy normalization with simulation ?
   bool normalization{1};
-  // Settings
-  double angle_min{134.};
-  double angle_max{144.};
+  // Setting
+  double angle_min{130.};
+  double angle_max{140.};
   const double iter_threshold = 1; // keV
   double kin_particle_threshold{};
   kin_particle_threshold = 8.956; // MeV
@@ -278,7 +282,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
         double range_ini_silicon = srim->EvalDirect("light", esil);
         std::cout << "theta = " << theta * TMath::RadToDeg() << "deg"
                   << "\n";
-        for (int i = 0; i < 200; i++) {
+        for (int i = 0; i < 20; i++) {
           std::cout << "elight_" << i << " = " << elight << "MeV"
                     << "\n";
           ereac = mass_beam * std::pow(((mass_light / mass_beam) + 1), 2) *
@@ -448,6 +452,20 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                 TMath::RadToDeg());
       },
       {"EBeam_Si", "EVertex", "fThetaLight"});
+  
+  // Ex of 8He
+  def = def.DefineSlot(
+      "Eex_angle",
+      [&](unsigned int slot, const ActRoot::MergerData &d, double ebeam) {
+        if (std::isnan(ebeam)) {
+          return -11.;
+        }
+        double Ex2;
+        Ex2 = ComputeExcitationEnergy_angle(ebeam,d.fThetaHeavy , d.fThetaLight,
+                                                mass_light, mass_beam);
+        return Ex2;
+      },
+      {"MergerData", "EBeam_range"});
 
   // Ex of 8He
   def = def.DefineSlot(
@@ -590,7 +608,7 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
 
   TString cutfile2{};
   cutfile2 = TString::Format("Cuts/"
-                             "Debug/Secondcleaning2_%dmbar.root",
+                             "Debug/Secondcleaning3_%dmbar.root",
                              pressure);
   cuts.ReadCut("Cleaning2", cutfile2);
 
@@ -627,14 +645,14 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   auto hEx_proj{vetoed2.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
   auto hEex_range{vetoed2.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
-  auto hEex_Si{def.Histo1D(HistConfig::Ex2, "Eex_Si")};
+  auto hEex_Si{vetoed2.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
   // auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
   // auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
   auto hEx2_range{vetoed2.Histo2D(HistConfig::Ex21Na3, "Ereac_check_range",
                                   "ThetaCM_range")}; // vetoed-def
   auto hEx2_Si{
-      vetoed.Histo2D(HistConfig::Ex21Na2, "Angle_heavy", "Angle_light")};
+      def.Histo2D(HistConfig::Ex21Na2, "Angle_heavy", "Angle_light")};
   auto hProj = GetProjectionX(hEx2_range.GetPtr(), angle_min, angle_max);
   // hProj->Rebin(2);
   auto hKin{def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};

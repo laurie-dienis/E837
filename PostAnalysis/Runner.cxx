@@ -25,7 +25,7 @@ void Runner(TString what = "plot")
     std::string target {"4He"};
     std::string light {"4He"};
     double ebeam_i {};
-    int pressure {900}; // mbar
+    int pressure {700}; // mbar
     if(pressure == 700)
     {
         ebeam_i = 1.486; // MeV/u //1.486
