@@ -39,9 +39,13 @@ const TH2DModel Ex21Na3 {
     "hEx3", "#theta_{Lab} vs E*_{^{12}Be,elastic};E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90, 10, 15, 90, 90,
     180};
 
+const TH2DModel Ex21Na4 {
+    "hEx4", "#theta_{Lab} vs E*_{^{12}Be,elastic};E_{lab} [MeV];#theta_{lab} [#circ]", 90, 3, 7, 90, 0,
+    60};
+
 const TH2DModel EexSiVsRange {"hEex_Si_vs_range", "Ex(8He);E_{x}(8He) computed with range (MeV);E_{x}(8He) computed with Si (MeV);", 500, -2, 4, 500, -2, 4};
 
-const TH2DModel EbeamSiVsRange {"hEbeam_Si_vs_range", "EVertex_check ;E_{vertex} calc [MeV];E_{vertex} computed with Si [MeV];", 500, 2, 14, 500, 2, 14};
+const TH2DModel EbeamSiVsRange {"hEbeam_Si_vs_range", "EVertex_check ;E_{vertex} calc [MeV];E_{vertex} computed with Si [MeV];", 500, 2, 20, 500, 2, 14};
 
 const TH2DModel PIDTwo {"hPIDUncal", "PIDTWO;E_{Sil} [Channel];Q_{ave} [mm^{-1}];", 500, 0, 15000, 1000, 0, 3000};
 

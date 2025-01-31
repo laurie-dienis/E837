@@ -51,8 +51,8 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   if (!standalone)
     gROOT->SetBatch(true);
 
-  double angle_min{134.};
-  double angle_max{144.};
+  double angle_min{130.};
+  double angle_max{140.};
 
   // SIGMAS
   const double sigmaSil{0.060 / 2.355};
@@ -75,7 +75,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(1e8)};
+  const int iterations{static_cast<int>(1e6)};
 
   // ACTIVATE STRAGGLING OR NOT
   bool stragglingInGas{true};
@@ -144,10 +144,9 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       0, 500, 300, 0, 500}};
 
   auto *hEBeam{new TH2D{"hEBeam", "Range angle", 300, 0, 180, 300, 0, 500}};
-  
+
   auto *hPID{
-      new TH2D{"hPID", "PID;E[MeV];Eloss [MeV]",
-               100, 0, 15, 100,0, 0.1}};
+      new TH2D{"hPID", "PID;E[MeV];Eloss [MeV]", 100, 0, 15, 100, 0, 0.1}};
 
   auto *hEx2{
       new TH2D{"hEx2",
@@ -159,6 +158,10 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       "hnorm",
       "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90,
       10, 15, 90, 90, 180}};
+
+  auto *hnorm_azure{new TH2D{
+      "hnorm_azure",
+      "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90, 3, 7, 90, 0, 60}};
 
   auto *hECM{
       new TH1D{"hECM", "ECM + threshold;E_{CM} + Thresh [MeV]", 100, 8, 18}};
@@ -267,13 +270,15 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     // obtain thetas and energies
     auto *PLight{kingen.GetLorentzVector(0)};
     auto theta3Lab{PLight->Theta()};
+    //std::cout << "theta3Lab = " << theta3Lab * TMath::RadToDeg() << "\n";
     auto T3Lab{PLight->Energy() - p3.GetMass()};
     auto EexBefore{kingen.GetBinaryKinematics().ReconstructExcitationEnergy(
         T3Lab, theta3Lab)};
     // to compute geometric efficiency by CM interval and with our set reference
     // direction
-    double theta3CMBefore{kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(
-                          T3Lab, theta3Lab)};
+    double theta3CMBefore{
+        kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(T3Lab,
+                                                                theta3Lab)};
     hThetaCMAll->Fill(theta3CMBefore * TMath::RadToDeg());
     // 4-> Include thetaLab resolution to compute thetaCM and Ex
     if (thetaResolution) // resolution in
@@ -349,7 +354,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       auto EexAfter{kingen.GetBinaryKinematics().ReconstructExcitationEnergy(
           T3Recon, theta3Lab)};
       auto theta3CM{kingen.GetBinaryKinematics().ReconstructTheta3CMFromLab(
-                        T3Recon, theta3Lab)};
+          T3Recon, theta3Lab)};
 
       // fill histograms
       // hThetaCM->Fill(theta3CM * TMath::RadToDeg());
@@ -363,6 +368,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       hKinVertex->Fill(theta3Lab * TMath::RadToDeg(), Ecm + 8.96); // T3Recon);
       hEx2->Fill(Ecm + 8.96, theta3CM * TMath::RadToDeg());
       hnorm->Fill(Ecm + 8.96, theta3CM * TMath::RadToDeg());
+      hnorm_azure->Fill(Ecm*((p1.GetAMU()+p2.GetAMU())/p1.GetAMU()),theta3Lab * TMath::RadToDeg());
       if (theta3CM * TMath::RadToDeg() >= angle_min &&
           theta3CM * TMath::RadToDeg() <= angle_max) {
         hprojection->Fill(Ecm + 8.96);
@@ -399,28 +405,57 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     // hProj = hptoection->ProjectionX("", 50, 60);
   }
 
-  //   for (int binX = 100; binX <= 110; ++binX) {
-  //     for (int binY = 1; binY <= hnorm->GetNbinsY(); ++binY) {
-  //       // Increment sum with the content of each bin in the range
-  //       sumBinContent += hnorm->GetBinContent(binX, binY);
-  //     }
-  //   }
+  // Obtenir le nombre de bins
+  int nBinsX = hnorm->GetNbinsX();
+  int nBinsY = hnorm->GetNbinsY();
 
-  //   // Print the sum of bin contents
-  //   std::cout << "Sum of bin contents between bins 50 and 60: " <<
-  //   sumBinContent
-  //             << std::endl;
+  for (int i = 1; i <= nBinsX; i++) {
+    for (int j = 1; j <= nBinsY; j++) {
+      
+      double n_observe = hnorm->GetBinContent(i, j);
+      std::cout<<"n_data"<<n_observe<<"\n";
 
-  //   for (Int_t bin = 1; bin <= hprojection->GetNbinsX(); ++bin) {
-  //     Double_t content = hprojection->GetBinContent(bin);
-  //     Double_t error = hprojection->GetBinError(bin);
-  //     std::cout << "Bin " << bin << ": Content = " << content
-  //               << ", Error = " << error << std::endl;
-  //   }
+      //double n_theorique = hnorm_uniform->GetBinContent(i, j);
+      double n_theorique = (iterations / 8100.)*3.;
+      std::cout<<"n_norm"<<n_theorique<<"\n";
+      std::cout<<"\n";
 
-  // std::cout << "\r" << std::string(100 / percentPrint, '|') << 100 << "%";
-  // std::cout.flush();
-  // std::cout << RESET << '\n';
+      // Normalise le bin
+      double normalise = 0;
+      if (n_theorique > 0) {
+        normalise = n_observe / n_theorique;
+      }
+
+      // Mets à jour le contenu du bin normalisé
+      hnorm->SetBinContent(i, j, normalise);
+    }
+  }
+  
+  // Obtenir le nombre de bins
+  int nBinsX_azure = hnorm_azure->GetNbinsX();
+  int nBinsY_azure = hnorm_azure->GetNbinsY();
+
+  for (int i = 1; i <= nBinsX_azure; i++) {
+    for (int j = 1; j <= nBinsY_azure; j++) {
+      
+      double n_observe_azure = hnorm_azure->GetBinContent(i, j);
+      std::cout<<"n_data"<<n_observe_azure<<"\n";
+
+      //double n_theorique = hnorm_uniform->GetBinContent(i, j);
+      double n_theorique_azure = (iterations / 8100.)*3.;
+      std::cout<<"n_norm"<<n_theorique_azure<<"\n";
+      std::cout<<"\n";
+
+      // Normalise le bin
+      double normalise_azure = 0;
+      if (n_theorique_azure > 0) {
+        normalise_azure = n_observe_azure / n_theorique_azure;
+      }
+
+      // Mets à jour le contenu du bin normalisé
+      hnorm_azure->SetBinContent(i, j, normalise_azure);
+    }
+  }
 
   // Efficiencies as quotient of histograms in TEfficiency class
   auto *eff{new TEfficiency(*hThetaCM, *hThetaCMAll)};
@@ -437,6 +472,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   // SAVING
   outFile->cd();
   hnorm->Write();
+  hnorm_azure->Write();
   hprojection->Write();
   outTree->Write();
   eff->Write();
@@ -492,7 +528,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     hprojection->DrawClone("hist");
     std::cout << "maxbincontent" << maxBinContent << std::endl;
     c1->cd(8);
-    hnorm->DrawClone("col");
+    hnorm_azure->DrawClone("col");
 
     // hRPx->DrawNormalized();
     // hRPxSimu->SetLineColor(kRed);

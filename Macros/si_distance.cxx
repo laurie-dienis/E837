@@ -19,11 +19,16 @@ void set_plot_style() {
 void si_distance() {
    TCanvas *c1 = new TCanvas("c1","A Simple Graph Example",200,10,700,500);
    Double_t x[100], y[100];
-  Double_t x_data[10] = {5, 6, 7, 7.5, 8, 8.5, 8.75, 8.9, 9, 10};
-  Double_t y_data[10] = {0.1485, 0.1485, 0.1645,  0.1992, 0.0556,
+  //Double_t x_data[10] = {5, 6, 7, 7.5, 8, 8.5, 8.75, 8.9, 9, 10};
+  //Double_t y_data[10] = {0.1485, 0.1485, 0.1645,  0.1992, 0.0556,
+  //               0.0331, 0.01014, -0.006, -0.01, -0.08};
+  
+  Double_t x_data[7] = {7.5, 8, 8.5, 8.75, 8.9, 9, 10};
+  Double_t y_data[7] = {0.1992, 0.0556,
                  0.0331, 0.01014, -0.006, -0.01, -0.08};
 
-   Int_t n = 10;
+
+   Int_t n = 7;
    for (Int_t i=0;i<n;i++) {
      x[i] = x_data[i];
      y[i] = y_data[i];
@@ -38,7 +43,7 @@ void si_distance() {
    gr->Draw("AP");
 
 
-  TLine *line1 = new TLine(4.5, 0, 10.5, 0);
+  TLine *line1 = new TLine(7.3, 0, 10.5, 0);
   line1->SetLineColor(kRed);
   line1->SetLineWidth(3);
   line1->Draw("same");
