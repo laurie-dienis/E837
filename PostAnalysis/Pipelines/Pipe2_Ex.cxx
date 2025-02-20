@@ -25,6 +25,7 @@
 
 #include "../HistConfig.h"
 #include "../Utils.cxx"
+#include <Math/SpecFuncMathMore.h> // Include this for Legendre polynomials
 
 TH1D *GetProjectionX(TH2D *h, double xmin, double xmax,
                      TString name = "projX_Ex") {
@@ -62,10 +63,10 @@ void ExportToAZURE_2D(TH2D *hEx2_range, const std::string &outputFilename) {
           ix); // Bin center for X-axis (Energy)
       double angle = hEx2_range->GetYaxis()->GetBinCenter(
           iy); // Bin center for Y-axis (Angle)
-      double crossSection =
-          hEx2_range->GetBinContent(ix, iy)*1e-3; // Bin content (Cross-section)
+      double crossSection = hEx2_range->GetBinContent(ix, iy) *
+                            1e-3; // Bin content (Cross-section)
       double uncertainty =
-          hEx2_range->GetBinError(ix, iy)*1e-3; // Bin error (Uncertainty)
+          hEx2_range->GetBinError(ix, iy) * 1e-3; // Bin error (Uncertainty)
 
       // Optional: Only write bins with non-zero content
       if (crossSection != 0) {
@@ -102,26 +103,30 @@ void ExportToAZURE_1D_EProj(TH1D *hEx2_range, const std::string &outputFilename,
 
   // Loop over the bins of the histogram
   for (int ix = 1; ix <= hEx2_range->GetNbinsX(); ++ix) {
-    double energy = hEx2_range->GetXaxis()->GetBinCenter(ix); // Bin center for X-axis (Energy)
-    double crossSection = hEx2_range->GetBinContent(ix)*1e-3; // Bin content (Cross-section)
-    double uncertainty = hEx2_range->GetBinError(ix)*1e-3; // Bin error (Uncertainty)
-
+    double energy = hEx2_range->GetXaxis()->GetBinCenter(
+        ix); // Bin center for X-axis (Energy)
+    double crossSection =
+        hEx2_range->GetBinContent(ix) * 1e-3; // Bin content (Cross-section)
+    double uncertainty =
+        hEx2_range->GetBinError(ix) * 1e-3; // Bin error (Uncertainty)
 
     // Optional: Only write bins with non-zero content
     if (crossSection != 0) {
       outFile << energy << "\t" << angle_min << "\t" << crossSection << "\t"
               << uncertainty << std::endl;
     }
-}
+  }
 
-// Close the file
-outFile.close();
-std::cout << "File " << outputFilename << " created successfully." << std::endl;
+  // Close the file
+  outFile.close();
+  std::cout << "File " << outputFilename << " created successfully."
+            << std::endl;
 }
 
 // Function to export histogram data to a file
-void ExportToAZURE_1D_ThetaProj(TH1D *hEx2_range, const std::string &outputFilename,
-                            const double &energy_min) {
+void ExportToAZURE_1D_ThetaProj(TH1D *hEx2_range,
+                                const std::string &outputFilename,
+                                const double &energy_min) {
   // Check if the histogram pointer is null
   if (!hEx2_range) {
     std::cerr << "Error: The provided histogram is null." << std::endl;
@@ -143,19 +148,21 @@ void ExportToAZURE_1D_ThetaProj(TH1D *hEx2_range, const std::string &outputFilen
     double angle = hEx2_range->GetXaxis()->GetBinCenter(
         ix); // Bin center for X-axis (Energy)
     double crossSection =
-        hEx2_range->GetBinContent(ix)*1e-3; // Bin content (Cross-section)
-    double uncertainty = hEx2_range->GetBinError(ix)*1e-3; // Bin error (Uncertainty)
+        hEx2_range->GetBinContent(ix) * 1e-3; // Bin content (Cross-section)
+    double uncertainty =
+        hEx2_range->GetBinError(ix) * 1e-3; // Bin error (Uncertainty)
 
     // Optional: Only write bins with non-zero content
     if (crossSection != 0) {
-      outFile << energy_min << "\t" << angle<< "\t" << crossSection << "\t"
+      outFile << energy_min << "\t" << angle << "\t" << crossSection << "\t"
               << uncertainty << std::endl;
     }
-}
+  }
 
-// Close the file
-outFile.close();
-std::cout << "File " << outputFilename << " created successfully." << std::endl;
+  // Close the file
+  outFile.close();
+  std::cout << "File " << outputFilename << " created successfully."
+            << std::endl;
 }
 
 void set_plot_style() {
@@ -204,6 +211,23 @@ double ComputeExcitationEnergy(double evertex, double ebeam, double theta,
               delta_m;
   // std::cout << "-> Ex : " << Ex << '\n';
   return Ex;
+}
+
+// Define the fitting function
+Double_t legendreFit(Double_t *x, Double_t *par) {
+  Double_t theta = x[0]; // theta in deg
+  Double_t sum = 0.0;
+  int Lmax = 2;
+
+  for (int L = 0; L <= Lmax; ++L) {
+    Double_t aL = par[2 * L];       // a_L coefficient
+    Double_t phiL = par[2 * L + 1]; // phi_L phase
+    // Calcul de l'exponentielle complexe e^{i*phi_L}
+    sum += aL * phiL *
+           ROOT::Math::legendre(L, TMath::Cos(theta) * TMath::DegToRad());
+  }
+  double W = sum * sum;
+  return W;
 }
 
 void Pipe2_Ex(const std::string &beam, const std::string &target,
@@ -255,14 +279,11 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   // Appy normalization with simulation ?
   bool normalization{1};
   // Setting
-  double angle_min{130.};
-  double angle_max{140.};
+  double angle_min{134.};
+  double angle_max{144.};
 
-  double angle_min_azure{20.7}; //19.3 ou 26
-  double angle_max_azure{27.3}; //23.3 ou 30
-  
-  double energy_min{11.61}; // 11.61 or 12.22
-  double energy_max{12.17}; // 12.17 or 12.78
+  double energy_min{11.54}; // 11.72 or 12.23
+  double energy_max{11.90}; // 12.00 or 12.79
 
   const double iter_threshold = 1; // keV
   double kin_particle_threshold{};
@@ -297,10 +318,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   double mass_light = pl.GetAMU();
   double ebeam_i_MeV = ebeam_i * mass_beam;
   double range_beam_i = srim->EvalDirect("beam", ebeam_i_MeV);
-  std::cout << "ebeam_i = " << ebeam_i_MeV << "MeV"
-            << "\n";
-  std::cout << "range_i = " << range_beam_i << "mm"
-            << "\n";
+  std::cout << "ebeam_i = " << ebeam_i_MeV << "MeV" << "\n";
+  std::cout << "range_i = " << range_beam_i << "mm" << "\n";
 
   auto def =
       df.Define("EVertex",
@@ -317,6 +336,11 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                 },
                 {"MergerData", "ESil"});
 
+  def = def.Define(
+      "tracklenght_heavy",
+      [&](const ActRoot::MergerData &d) { return d.fTrackLengthHeavy; },
+      {"MergerData"});
+
   // comparison with other method for reconstruction Ex
 
   def = def.Define("EBeam_range",
@@ -330,13 +354,65 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
                    },
                    {"MergerData"});
 
+  // def = def.DefineSlot(
+  //     "Evertex_theo",
+  //     [&](unsigned int slot, const ActRoot::MergerData &d, double ebeam,
+  //         float theta) {
+  //       if (std::isnan(ebeam) || ebeam < vkins[slot].GetT1Thresh()) {
+  //         return -11.;
+  //       }
+  //       vkins[slot].SetBeamEnergy(ebeam);
+  //       return vkins[slot].ComputeTheoreticalT3(theta * TMath::DegToRad(),
+  //                                               "pos");
+  //     },
+  //     {"MergerData", "EBeam_range", "fThetaLight"});
+
+  // def = def.Define("ESil_theo",
+  //              [&](const ActRoot::MergerData &d, double evertex) {
+  //                return srim->Slow("light", evertex, d.fTrackLength);
+  //              },
+  //              {"MergerData", "Evertex_theo"});
+
+  def = def.Define(
+      "ESil_theo",
+      [&](const ActRoot::MergerData &d, double ebeam, double esil) {
+        double Ecm = ebeam * (mass_target / (mass_target + mass_beam));
+        double Elab = Ecm * ((mass_target + mass_beam) / mass_target);
+        std::cout << "esil_meas = " << esil << "\n";
+        std::cout << "esil_theo = " << Elab << "\n";
+        std::cout << '\n';
+        return Elab;
+      },
+      {"MergerData", "EBeam_range", "ESil"});
+
+  def = def.Define(
+      "EVertex_theo",
+      [&](const ActRoot::MergerData &d, double esil, double evertex) {
+        std::cout << "evertex = " << evertex << "\n";
+        std::cout << "-> esil : "
+                  << srim->EvalInitialEnergy("light", esil, d.fTrackLength)
+                  << '\n';
+        std::cout << '\n';
+        return srim->EvalInitialEnergy("light", esil, d.fTrackLength);
+      },
+      {"MergerData", "ESil_theo", "EVertex"});
+
   def = def.Define("Angle_heavy",
+                   [&](const ActRoot::MergerData &d) {
+                     //  std::cout << "-> ebeam : " << srim->Slow("beam",
+                     //  ebeam_i_MeV, d.fRP.X(),
+                     //                    '\n';
+                     return d.fThetaHeavy;
+                   },
+                   {"MergerData"});
+
+  def = def.Define("Angle_Phi_Light",
                    [&](const ActRoot::MergerData &d) {
                      //  std::cout << "-> ebeam : " << srim->Slow("beam",
                      //  ebeam_i_MeV, d.fRP.X(),
                      //                    d.fThetaBeam * TMath::DegToRad())  <<
                      //                    '\n';
-                     return d.fThetaHeavy;
+                     return d.fPhiLight;
                    },
                    {"MergerData"});
 
@@ -453,6 +529,20 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       },
       {"MergerData", "EBeam_range", "EVertex"});
 
+  // Ex of 8He with RP
+  def = def.DefineSlot("Eex_RP",
+                       [&](unsigned int slot, const ActRoot::MergerData &d,
+                           double ebeam, double evertex) {
+                         //  if (std::isnan(ebeam)) {
+                         //    return -11.;
+                         //  }
+                         double Ex2 = ComputeExcitationEnergy_elastic(
+                             evertex, ebeam, d.fThetaLight, mass_light,
+                             mass_beam);
+                         return Ex2 - 0.018653;
+                       },
+                       {"MergerData", "EBeam_range", "EVertex_calc"});
+
   // Ex of 8He
   def = def.DefineSlot(
       "Eex_Si",
@@ -549,18 +639,6 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
     return;
   }
 
-  // Retrieve the TH2D histogram named "hnorm_azure" from the file
-  TH2D *hnorm_azure = dynamic_cast<TH2D *>(norm->Get("hnorm_azure"));
-  if (!hnorm_azure) {
-    // Handle error if the histogram cannot be found or if it's of the wrong
-    // type
-    std::cerr << "Error: Histogram 'hnorm' not found or is not a TH2D"
-              << std::endl;
-    // Close the file before exiting
-    norm->Close();
-    return;
-  }
-
   // Retrieve the TH1D histogram named "hnorm_proj" from the file
   TH1D *hnorm_proj = dynamic_cast<TH1D *>(norm->Get("hprojection"));
   if (!hnorm_proj) {
@@ -598,6 +676,8 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       {"MergerData", "Ereac_check_Si", "ThetaCM_Si"});
   streamer.close();
 
+  auto vetoed0 = def.Filter("Eex_range>-0.1 && Eex_range<+0.1");
+
   // Filter
   auto vetoed{def.Filter(
       [&](double EVertex_calc, double EVertex) {
@@ -611,31 +691,49 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
       },
       {"Angle_heavy", "Angle_light"})};
 
+  // // Apply Ex Fliter
+  // auto vetoed = def.Filter("Ereac_check_Si>11.6 && Ereac_check_Si<11.8");
+
+  // // Filter
+  // auto vetoed2{vetoed.Filter(
+  //     [&](float fThetaLight, double EVertex) {
+  //       return cuts.IsInside("Ebeamcorrect", fThetaLight, EVertex);
+  //     },
+  //     {"fThetaLight", "EVertex"})};
+
+  // auto vetoed3{vetoed2.Filter(
+  //     [&](float tracklenght_heavy, float Angle_heavy) {
+  //       return cuts.IsInside("Cleaning2", Angle_heavy, tracklenght_heavy);
+  //     },
+  //     {"tracklenght_heavy", "Angle_heavy"})};
+
   // Book histograms
   auto hEreac{def.Histo1D(HistConfig::Ereac, "EBeam_Si")};
   auto hTheta{d.Histo1D("fThetaLight")};
   // auto hElight{def.Histo1D(HistConfig::Elight, "Elight")};
   auto hEx_proj{vetoed2.Histo1D(HistConfig::Exproj, "Ex_proj")}; // vetoed-def
   // auto hEex_range{def.Histo1D(HistConfig::Ex, "Eex_range")}; //vetoed-def
-  auto hEex_range{vetoed2.Histo1D(HistConfig::Ex, "Eex_range")}; // vetoed-def
+  auto hEex_range{vetoed.Histo1D(HistConfig::Ex, "Eex_RP")}; // vetoed-def
   auto hEex_Si{vetoed2.Histo1D(HistConfig::Ex2, "Eex_Si")};
   // auto hEdiff{def.Histo1D(HistConfig::Ediff, "Ereac_diff")};
   // auto hExlab{def.Histo2D(HistConfig::Ex21Nalab, "fThetaLight", "Ex")};
   // auto hEx{def.Histo2D(HistConfig::Ex21Na, "ThetaCM_Si", "Ex")};
-  auto hEx2_range{vetoed2.Histo2D(HistConfig::Ex21Na3, "Ereac_check_Si",
+  auto hEx2_range{vetoed2.Histo2D(HistConfig::Ex21Na3, "Ereac_check_range",
                                   "ThetaCM_range")}; // vetoed-def
-  auto hEx2_azure{vetoed2.Histo2D(HistConfig::Ex21Na4, "Elab",
-                                  "Angle_light")}; // vetoed-def
+  auto hEx2_azure{vetoed2.Histo2D(HistConfig::Ex21Na4, "Ereac_check_Si",
+                                  "Angle_Phi_Light")}; // vetoed-def
   auto hEx2_Si{def.Histo2D(HistConfig::Ex21Na2, "Angle_heavy", "Angle_light")};
   auto hProj = GetProjectionX(hEx2_range.GetPtr(), angle_min, angle_max);
   // hProj->Rebin(2);
-  auto hKin{def.Histo2D(HistConfig::KinEl, "fThetaLight", "EVertex")};
+  auto hKin{def.Histo2D(HistConfig::KinEl, "Angle_heavy", "ESil")};
   auto hEex_Si_vs_range{
       def.Histo2D(HistConfig::EexSiVsRange, "Eex_range", "Eex_Si")};
   auto hEbeam_Si_vs_range{
-      vetoed2.Histo2D(HistConfig::EbeamSiVsRange, "EVertex_calc", "EVertex")};
+      vetoed.Histo2D(HistConfig::EbeamSiVsRange, "EVertex_calc", "EVertex")};
+  auto htrack{
+      vetoed.Histo2D(HistConfig::Ex21Na2, "Angle_heavy", "tracklenght_heavy")};
 
-  //////////////////////////////////////////////////////////////////////  
+  //////////////////////////////////////////////////////////////////////
   /////////////Normalize and pass to cross_section//////////////////////
   ////////////////////////////////////////////////////////////////////
   // Check compatibility
@@ -690,64 +788,6 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
     }
   }
 
-  //////////////////////////////////////////////////
-  // Normalization and cross section for AZURE2 ////
-  //////////////////////////////////////////////
-
-  int bin_min_AZURE = hEx2_azure->GetYaxis()->FindBin(angle_min_azure);
-  int bin_max_AZURE = hEx2_azure->GetYaxis()->FindBin(angle_max_azure);
-  TH2F *hEx2_azure_original = (TH2F *)hEx2_range->Clone("hEx2_azure_original");
-  auto hProj_azure_nonorm = hEx2_azure_original->ProjectionX(
-      "hProjY_nonorm_azure", bin_min_AZURE, bin_max_AZURE);
-
-  int bin_min_theta_AZURE = hEx2_range->GetXaxis()->FindBin((energy_min-8.96)*1.5);
-  int bin_max_theta_AZURE = hEx2_range->GetXaxis()->FindBin((energy_max-8.96)*1.5);
-  auto hProj_azure_Theta_nonorm = hEx2_azure_original->ProjectionY(
-      "hProjX_nonorm_azure", bin_min_theta_AZURE, bin_max_theta_AZURE);
-
-  /// Apply normalization
-  for (int ix = 1; ix <= hEx2_azure->GetNbinsX(); ++ix) {
-    for (int iy = 1; iy <= hEx2_azure->GetNbinsY(); ++iy) {
-      double bin_content_phy = hEx2_azure->GetBinContent(ix, iy);
-      double bin_content_norm = hnorm_azure->GetBinContent(ix, iy);
-      double angle_deg = hEx2_azure->GetYaxis()->GetBinCenter(iy);
-      double cross_section_factor_2;
-      if (pressure == 700) {
-        cross_section_factor_2 =
-            1e24 * 1e3 /
-            (2 * TMath::Pi() * TMath::Sin((angle_deg)*TMath::DegToRad()) *
-             0.0002390941 * 2.58e9 * 1.29e19);
-      }
-      if (pressure == 900) {
-        cross_section_factor_2 =
-            1e24 * 1e3 /
-            (2 * TMath::Pi() * TMath::Sin((angle_deg)*TMath::DegToRad()) *
-             0.0002390941 * 1.09e9 * 2.21e19);
-      }
-      if (bin_content_norm != 0 && bin_content_phy != 0) {
-        //std::cout<<"norm = "<<bin_content_norm<<"\n";
-        // std::cout<<"counts = "<<bin_content_phy<<"\n";
-        // std::cout<<"angle = "<<angle_deg<<"\n";
-        // std::cout<<"cross_section_factor = "<<cross_section_factor_2<<"\n";
-        // std::cout<<"\n";
-        hEx2_azure->SetBinContent(ix, iy,
-                                  cross_section_factor_2 *
-                                      (bin_content_phy / bin_content_norm));
-      } else {
-        hEx2_azure->SetBinContent(ix, iy, 0);
-      }
-    }
-  }
-
-  // Set the output filename dynamically
-  std::string outputFilename = std::string(
-      TString::Format("ACTAR_differential_%d.dat", pressure).Data());
-
-  // Get a pointer to the histogram
-  TH2D *hEx2_azure_ptr = hEx2_azure.GetPtr();
-
-  ExportToAZURE_2D(hEx2_azure_ptr, outputFilename);
-
   //////////////////////////////////////////
   //////// Projection Ex ///////////////////
   //////////////////////////////////////////
@@ -777,61 +817,47 @@ void Pipe2_Ex(const std::string &beam, const std::string &target,
   //////////////////////////////////////////
   //////Projection Elab for azure///////////
   /////////////////////////////////////////
-// Définition des paramètres de transformation
-double a = kin_particle_threshold;  // Remplace par ta valeur
-double b = (mass_beam+mass_target)/mass_beam;  // Remplace par ta valeur
 
-// Création d'un nouvel histogramme pour stocker la transformation
-TH1D* hProj2_transformed = (TH1D*)hProj2->Clone("hProj2_transformed");
-hProj2_transformed->Reset(); // On vide l'histogramme pour le remplir correctement
+  // Définition des paramètres de transformation
+  double a = kin_particle_threshold;
+  double b = (mass_beam + mass_target) / mass_beam;
 
-// Application de la transformation sur chaque bin
-for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
-    double x = hProj2->GetBinCenter(i);  // Coordonnée x du centre du bin
-    double new_x = (x - a) * b;          // Transformation
-    std::cout<<"energie = "<<new_x<<"\n";
+  // Trouver les nouvelles bornes min et max après transformation
+  double xmin_transformed = (hProj2->GetBinLowEdge(1) - a) * b;
+  double xmax_transformed =
+      (hProj2->GetBinLowEdge(hProj2->GetNbinsX() + 1) - a) * b;
+  int nbins = hProj2->GetNbinsX(); // Garde le même nombre de bins
+
+  // Créer un nouvel histogramme avec une plage ajustée
+  TH1D *hProj2_transformed =
+      new TH1D("hProj2_transformed", "Transformed Projection", nbins,
+               xmin_transformed, xmax_transformed);
+  hProj2_transformed
+      ->Reset(); // On vide l'histogramme pour le remplir correctement
+
+  // Application de la transformation sur chaque bin
+  for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
+    double x = hProj2->GetBinCenter(i); // Coordonnée x du centre du bin
+    double new_x = (x - a) * b;         // Transformation
+    // std::cout << "energie = " << new_x << "\n";
 
     double content = hProj2->GetBinContent(i); // Contenu du bin d'origine
-    double error = hProj2->GetBinError(i);     // Erreur associée
+    // std::cout << "content = " << content << "\n";
+    double error = hProj2->GetBinError(i); // Erreur associée
 
     // Remplissage du nouvel histogramme
     int new_bin = hProj2_transformed->FindBin(new_x);
     hProj2_transformed->SetBinContent(new_bin, content);
     hProj2_transformed->SetBinError(new_bin, error);
-} 
-
-
-  auto hProj_azure_elab = hEx2_azure->ProjectionX("hProjY_azure_elab",
-                                                  bin_min_AZURE, bin_max_AZURE);
-  // Calcul des erreurs normalisées
-  for (int i = 1; i <= hProj_azure_nonorm->GetNbinsX(); ++i) {
-    double bin_content_nonorm = hProj_azure_nonorm->GetBinContent(i); // Contenu
-    // non normalisé
-    double bin_content_norm = hProj_azure_elab->GetBinContent(i) / 10.; //
-    // Contenu normalisé
-
-    // Vérification pour éviter division par zéro
-    if (bin_content_nonorm > 0 && bin_content_norm > 0) {
-      hProj_azure_elab->SetBinContent(i, bin_content_norm);
-      double norm_factor = bin_content_norm / bin_content_nonorm;
-      // std::cout << "bin content no norm = " << bin_content_nonorm << "\n";
-      // std::cout << "norm factor = " << norm_factor << "\n";
-      double error = TMath::Sqrt(bin_content_nonorm) * norm_factor;
-      // std::cout << "error no norm = " << TMath::Sqrt(bin_content_nonorm)  <<
-      // "\n"; std::cout << "error norm = " << error  << "\n\n";
-      hProj_azure_elab->SetBinError(i, error);
-    } else {
-      hProj_azure_elab->SetBinError(i, 0); // Pas d'erreur si le contenu est nul
-    }
   }
 
   // Set the output filename dynamically
   std::string outputFilename_proje =
-      std::string(TString::Format("ACTAR_angle_%f_%f_%d.dat", angle_min_azure,
-                                  angle_max_azure, pressure)
+      std::string(TString::Format("ACTAR_angle_%f_%f_%d.dat", angle_min,
+                                  angle_max, pressure)
                       .Data());
 
-  ExportToAZURE_1D_EProj(hProj_azure_elab, outputFilename_proje, angle_min_azure);
+  ExportToAZURE_1D_EProj(hProj2_transformed, outputFilename_proje, angle_min);
 
   ///////////////////////////////////////////
   ///////////Projection ThetaCM ////////////
@@ -859,41 +885,93 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
       hProjTheta->SetBinError(i, 0); // Pas d'erreur si le contenu est nul
     }
   }
-  
-  /////////////////////////////////////////
-  /////Projection Thetalab for azure2 /////
-  /////////////////////////////////////////
-  auto hProj_azure_theta =
-      hEx2_azure->ProjectionY("hProjX_azure_norm", bin_min_theta_AZURE, bin_max_theta_AZURE);
-  // Calcul des erreurs normalisées
-  for (int i = 1; i <= hProj_azure_theta->GetNbinsX(); ++i) {
-    double bin_content_nonorm = hProj_azure_Theta_nonorm->GetBinContent(i); // Contenu
-    // non normalisé
-    double bin_content_norm = hProj_azure_theta->GetBinContent(i) / 10.; //
-    // Contenu normalisé
 
-    // Vérification pour éviter division par zéro
-    if (bin_content_nonorm > 0 && bin_content_norm > 0) {
-      hProj_azure_theta->SetBinContent(i, bin_content_norm);
-      double norm_factor = bin_content_norm / bin_content_nonorm;
-      // std::cout << "bin content no norm = " << bin_content_nonorm << "\n";
-      // std::cout << "norm factor = " << norm_factor << "\n";
-      double error = TMath::Sqrt(bin_content_nonorm) * norm_factor;
-      // std::cout << "error no norm = " << TMath::Sqrt(bin_content_nonorm)  <<
-      // "\n"; std::cout << "error norm = " << error  << "\n\n";
-      hProj_azure_theta->SetBinError(i, error);
-    } else {
-      hProj_azure_theta->SetBinError(i, 0); // Pas d'erreur si le contenu est nul
-    }
+  ///////////////////////////////////////////
+  //////Angular distribution from azure /////
+  //////////////////////////////////////////
+
+  // Ouvrir le fichier
+  std::ifstream infile("Input/azure/bench_2.txt");
+  if (!infile) {
+    std::cerr << "Erreur : impossible d'ouvrir le fichier !" << std::endl;
+    return;
   }
-  
-  // Set the output filename dynamically
-  std::string outputFilename_projtheta =
-      std::string(TString::Format("ACTAR_angle_%f_%f_%d.dat", energy_min,
-                                  energy_max, pressure)
-                      .Data());
 
-  ExportToAZURE_1D_ThetaProj(hProj_azure_elab, outputFilename_projtheta, energy_min);
+  // Variables pour stocker les valeurs
+  double col1, col2, angle, content, col5;
+  std::vector<double> angles, contents;
+
+  // Lire le fichier ligne par ligne
+  while (infile >> col1 >> col2 >> angle >> content >> col5) {
+    angles.push_back(angle);
+    // std::cout << "angle = " << angle << "\n";
+    contents.push_back(1 * content * 1e3);
+    // std::cout << "content = " << content << "\n";
+    // std::cout << "\n";
+  }
+  infile.close();
+
+  // Déterminer les bornes de l'histogramme
+  double minAngle = angles.front();
+  double maxAngle = angles.back();
+  int nbins_azure = angles.size();
+
+  // Création de l'histogramme
+  TH1D *hazure_angle = new TH1D("hAngleHist", "Histogramme des angles",
+                                nbins_azure, minAngle, maxAngle);
+
+  // Remplissage de l'histogramme
+  for (size_t i = 0; i < angles.size(); i++) {
+    int bin = hazure_angle->FindBin(angles[i]);
+    hazure_angle->SetBinContent(bin, contents[i]);
+  }
+
+  ///////////////////////////////////////////
+  //////2D plot from azure /////
+  //////////////////////////////////////////
+
+  // Ouvrir le fichier
+  std::ifstream infile2("Input/azure/11.7_1-_2D.txt");
+  if (!infile2) {
+    std::cerr << "Erreur : impossible d'ouvrir le fichier !" << std::endl;
+    return;
+  }
+
+  // Variables pour stocker les valeurs
+  double energy_2, col2_2, angle_2, content_2, col5_2;
+  std::vector<double> energies_2, angles_2, contents_2;
+
+  // Lire le fichier ligne par ligne
+  while (infile2 >> energy_2 >> col2_2 >> angle_2 >> content_2 >> col5_2) {
+    // std::cout << "energies = " << energy_2 + 8.96 << "\n";
+    energies_2.push_back(energy_2 + 8.96);
+    angles_2.push_back(angle_2);
+    // std::cout << "angle = " << angle_2 << "\n";
+    contents_2.push_back(content_2 * 1e3);
+    // std::cout << "content = " << content_2 * 1e3 << "\n";
+    // std::cout << "\n";
+  }
+  infile.close();
+
+  // Déterminer les bornes de l'histogramme
+  double minAngle_2 = angles_2.front();
+  double maxAngle_2 = angles_2.back();
+  int nbins_y_azure = 80;
+  double minEnergy = energies_2.front();
+  double maxEnergy = energies_2.back();
+  int nbins_x_azure = 50;
+
+  // Création de l'histogramme
+  TH2D *hazure_2D =
+      new TH2D("h2DAzure", "Histogramme 2D energie et angle", nbins_x_azure,
+               minEnergy, maxEnergy, nbins_y_azure, minAngle_2, maxAngle_2);
+
+  for (size_t i = 0; i < energies_2.size(); i++) {
+    int bin_x = hazure_2D->GetXaxis()->FindBin(energies_2[i]);
+    int bin_y = hazure_2D->GetYaxis()->FindBin(angles_2[i]);
+    hazure_2D->SetBinContent(bin_x, bin_y,
+                             contents_2[i]); // Utilisation correcte
+  }
 
   // Check compatibility
   // if (hProj->GetNbinsX() != hnorm_proj->GetNbinsX()) {
@@ -910,33 +988,6 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
   TH1D *hEx_proj_nonorm =
       dynamic_cast<TH1D *>(hEx_proj->Clone("hEx_proj_nonorm"));
 
-  if (normalization == 1) {
-    hProj->Divide(hnorm_proj);
-
-    // Apply normalization
-    for (int ix = 1; ix <= hEx_proj->GetNbinsX(); ++ix) {
-      double bin_content_1 = hEx_proj->GetBinContent(ix);
-      double bin_content_2 = hnorm_proj->GetBinContent(ix);
-      // std::cout<<"norm = "<<bin_content_2<<"\n";
-      double cross_section_factor =
-          1e24 * 1e3 /
-          (2 * TMath::Pi() *
-           TMath::Sin(((angle_max + angle_min) / 2) * TMath::DegToRad()) *
-           0.02390941 * 2.58e9 * 1.29e19);
-      if (bin_content_2 != 0 && bin_content_1 != 0) {
-        hEx_proj->SetBinContent(ix, cross_section_factor *
-                                        (bin_content_1 / bin_content_2));
-        double norm_factor_2 = cross_section_factor / bin_content_2;
-        double error_2 = TMath::Sqrt(bin_content_1) * norm_factor_2;
-        hEx_proj->SetBinError(ix, error_2);
-      } else {
-        hEx_proj->SetBinContent(ix, 0);
-        hEx_proj->SetBinError(ix, 0); // Pas d'erreur si le contenu est nul
-      }
-    }
-  }
-
-  gErrorIgnoreLevel = kError;
   // plotting
   set_plot_style();
   auto *c20{new TCanvas("c20", "Pipe2 canvas 0")};
@@ -944,7 +995,7 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
   c20->cd(1);
   hEex_range->DrawClone("colz");
   c20->cd(2);
-  hEx2_azure->DrawClone("colz");
+  hEx2_range->DrawClone("colz");
   c20->cd(3);
   // hProj->DrawClone("");
   // hEx_proj_nonorm->SetLineColor(kAzure-2); // Couleur des lignes et barres
@@ -972,63 +1023,64 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
       kBlack); // Couleur des points et des barres d'erreurs
   graph_theta->SetLineColor(kBlack); // Couleur des barres d'erreurs
   graph_theta->SetLineWidth(2);
-  graph_theta->SetTitle(
-      TString::Format("Proj of #theta_{CM} between %.2f and %.2f#circ",
-                      energy_min, energy_max));
+  graph_theta->SetTitle(TString::Format(
+      "Proj of #theta_{CM} between %.2f and %.2f MeV", energy_min, energy_max));
   graph_theta->GetXaxis()->SetTitle("#theta_{CM} (^{#circ})");
   graph_theta->GetYaxis()->SetTitle("#frac{d#sigma}{d#Omega} (mb/sr)");
 
   // Dessiner uniquement les barres d'erreurs et les points
   graph_theta->Draw("AP"); // "A" pour axes, "P" pour points et barres d'erreurs
-  // hEx_proj_nonorm->DrawClone("E1 SAME");
-  // Utiliser TGraphSmooth pour ajouter une courbe lissée
-  TGraphSmooth *graphSmooth_theta = new TGraphSmooth("smooth");
-  TGraph *smoothGraph_theta = graphSmooth_theta->SmoothKern(
-      graph_theta, "normal", 0.1); // méthode Kernel
+  // // hEx_proj_nonorm->DrawClone("E1 SAME");
+  // // Utiliser TGraphSmooth pour ajouter une courbe lissée
+  // TGraphSmooth *graphSmooth_theta = new TGraphSmooth("smooth");
+  // TGraph *smoothGraph_theta = graphSmooth_theta->SmoothKern(
+  //     graph_theta, "normal", 0.1); // méthode Kernel
 
-  // Personnalisation de la courbe lissée
-  smoothGraph_theta->SetLineColor(kRed); // Couleur de la courbe (bleu)
-  smoothGraph_theta->SetLineWidth(2);    // Épaisseur de la courbe
+  // // Personnalisation de la courbe lissée
+  // smoothGraph_theta->SetLineColor(kRed); // Couleur de la courbe (bleu)
+  // smoothGraph_theta->SetLineWidth(2);    // Épaisseur de la courbe
 
-  // Dessiner la courbe lissée par-dessus
-  smoothGraph_theta->Draw(
-      "C SAME"); // "C" pour courbe lisse, "SAME" pour superposer
-    
-    //0+
-    TF1 *line10 = new TF1("line10","(200*456518.17*(x-100)^(-4.0849579))",100, 160);
-    line10->SetLineColor(kRed);
-    line10->SetLineWidth(4);
-    line10->Draw("same");
+  // // Dessiner la courbe lissée par-dessus
+  // smoothGraph_theta->Draw(
+  //     "C SAME"); // "C" pour courbe lisse, "SAME" pour superposer
+  // hazure_angle->Draw("");
 
-    //1-
-    TF1 *line20 = new TF1("line20","(200*32523.259*(x-100)^(-3.2306928))",100, 160);
-    line20->SetLineColor(kOrange);
-    line20->SetLineWidth(4);
-    line20->Draw("same");
+  // Define a function with parameters up to Lmax=3 (adjust as needed)
+  TF1 *fitFunc = new TF1("fitFunc", legendreFit, 100, 160,
+                         11); // anglemin, anglemax, number of parameters
 
-    //2+
-    TF1 *line30 = new TF1("line30","(200*13.182879*exp(-0.08076059*(x-100)))",100, 160);
-    line30->SetLineColor(kBlue);
-    line30->SetLineWidth(4);
-    line30->Draw("same");
-    
-    //3-
-    TF1 *line40 = new TF1("line40","150*(-0.63635095*(x-100)+29.04588)",100, 160);
-    line40->SetLineColor(kGreen);
-    line40->SetLineWidth(4);
-    line40->Draw("same");
+  // Set initial parameter values
+  fitFunc->SetParameter(1, 0);    // a0
+  fitFunc->SetParameter(2, 0.1);  // phi0
+  fitFunc->SetParameter(3, 0);    // a1
+  fitFunc->SetParameter(4, 1);    // phi1
+  fitFunc->SetParameter(5, 100);  // a2
+  fitFunc->SetParameter(6, 0.1);  // phi2
+  fitFunc->SetParameter(7, 0);    // a3
+  fitFunc->SetParameter(8, 0.1);  // phi3
+  fitFunc->SetParameter(9, 0);    // a4
+  fitFunc->SetParameter(10, 0.1); // phi4
 
-    //4+
-    TF1 *line50 = new TF1("line50","200*130608.17*(x-100)^(-3.624432600)",100, 160);
-    line50->SetLineColor(kViolet);
-    line50->SetLineWidth(4);
-    line50->Draw("same");
-  
+  // Perform fit
+  // graph_theta->Fit(fitFunc, "R");
+  // fitFunc->Draw("same");
+
+  //   //0+
+  TF1 *line10 = new TF1("line10",
+                        "1000*ROOT::Math::legendre(4, "
+                        "TMath::Cos(x*TMath::DegToRad()))*ROOT::Math::legendre("
+                        "4, TMath::Cos(x*TMath::DegToRad()))",
+                        100, 160);
+  line10->SetLineColor(kRed);
+  line10->SetLineWidth(4);
+  line10->Draw("same");
+
   c20->cd(4);
   hEbeam_Si_vs_range->DrawClone("colz");
+  // htrack->DrawClone("colz");
   cuts.DrawAll();
   // hEex_Si->DrawClone("colz");
-  
+
   c20->cd(5);
   hEx2_Si->DrawClone("colz");
   ActPhysics::Kinematics kin1{beam, target, light, ebeam_i_MeV};
@@ -1039,21 +1091,81 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
   auto *g2{kin2.GetTheta3vs4Line()};
   g2->SetLineColor(kViolet - 4);
   g2->Draw("l");
+
+  // hKin->DrawClone("colz");
+
+  // 11.7
+  //  TF1 *line12 = new TF1("line12","-6.86e-3*x*x-1.84e-2*x+4.68-0.5",5, 25);
+  //  line12->SetLineColor(kOrange+6);
+  //  line12->SetLineWidth(4);
+  //  line12->Draw("same");
+
+  TF1 *line13 = new TF1("line13", "-3.92e-3*x*x+2.91e-2*x+5.76-0.15", 5, 45);
+  line13->SetLineColor(kViolet - 3);
+  line13->SetLineWidth(4);
+  line13->Draw("same");
+
+  // 12.5
+  // TF1 *line12 = new TF1("line12","-1.06e-2*x*x-4.98e-2*x+5.19",5, 20);
+  // line12->SetLineColor(kOrange+6);
+  // line12->SetLineWidth(4);
+  // line12->Draw("same");
+
+  // TF1 *line13 = new TF1("line13","-6.83e-3*x*x+4.73e-2*x+6.59",5, 40);
+  // line13->SetLineColor(kViolet-3);
+  // line13->SetLineWidth(4);
+  // line13->Draw("same");
+
+  // 11 to 13
+  // 6He
+  // TF1 *line12 = new TF1("line12","-7.53e-3*x*x+5.07e-2*x+5.54",0, 50);
+  // line12->SetLineColor(kOrange+6);
+  // line12->SetLineWidth(4);
+  // line12->Draw("same");
+
+  // TF1 *line13 = new TF1("line13","1.67e-3*x*x-3.13e-1*x+4.42",0, 50);
+  // line13->SetLineColor(kOrange+6);
+  // line13->SetLineWidth(4);
+  // line13->Draw("same");
+
+  // 4He
+  //  TF1 *line14 = new TF1("line14","-2.59e-3*x*x-4.72e-2*x+8.18",0, 50);
+  //  line14->SetLineColor(kViolet-3);
+  //  line14->SetLineWidth(4);
+  //  line14->Draw("same");
+
+  // TF1 *line15 = new TF1("line15","-6.66e-3*x*x-5.67e-2*x+4.88",0, 50);
+  // line15->SetLineColor(kViolet-3);
+  // line15->SetLineWidth(4);
+  // line15->Draw("same");
+
+  // //8He
+  // TF1 *line16 = new TF1("line16","-2.96e-3*x*x+2.24e-2*x+7.25",0, 50);
+  // line16->SetLineColor(kBlue-4);
+  // line16->SetLineWidth(4);
+  // line16->Draw("same");
+
+  // TF1 *line17 = new TF1("line17","-3.49e-3*x*x-1.15e-1*x+5.48",0, 50);
+  // line17->SetLineColor(kBlue-4);
+  // line17->SetLineWidth(4);
+  // line17->Draw("same");
+
   cuts.DrawAll();
+
   c20->cd(6);
   // hEbeam_Si_vs_range->DrawClone("colz");
-  hProj_azure_elab->SetTitle(
+  hProj2->SetTitle(
       TString::Format("Projection of Ex(12Be) between %.2f and %.2f #circ",
                       angle_min, angle_max));
   // Créer le graphe avec erreurs
-  int nBins = hProj_azure_elab->GetNbinsX();
+  int nBins = hProj2->GetNbinsX();
   TGraphErrors *graph = new TGraphErrors(nBins);
 
   for (int i = 1; i <= nBins; ++i) {
-    double x = hProj_azure_elab->GetBinCenter(i);  // Coordonnée X (centre de la bin)
-    double y = hProj_azure_elab->GetBinContent(i); // Coordonnée Y (contenu de la bin)
+    double x = hProj2->GetBinCenter(i);  // Coordonnée X (centre de la bin)
+    double y = hProj2->GetBinContent(i); // Coordonnée Y (contenu de la bin)
     double ex = 0;                       // Pas d'erreur sur X
-    double ey = hProj_azure_elab->GetBinError(i);  // Erreur sur Y
+    double ey = hProj2->GetBinError(i);  // Erreur sur Y
     graph->SetPoint(i - 1, x, y);        // Ajouter le point
     graph->SetPointError(i - 1, ex, ey); // Ajouter les barres d'erreurs
   }
@@ -1102,69 +1214,5 @@ for (int i = 1; i <= hProj2->GetNbinsX(); ++i) {
   // Get the y-axis range of the histogram
   double y_min = hEx_proj->GetMinimum();
   double y_max = hEx_proj->GetMaximum();
-
-  // Create TLine objects for each vertical line
-  TLine *line1 = new TLine(11.7, y_min, 11.7, y_max);
-  TLine *line2 = new TLine(11.85, y_min, 11.85, y_max);
-  TLine *line3 = new TLine(12.1, y_min, 12.1, y_max);
-  TLine *line4 = new TLine(12.2, y_min, 12.2, y_max);
-  TLine *line5 = new TLine(12.4, y_min, 12.4, y_max);
-  TLine *line6 = new TLine(12.7, y_min, 12.7, y_max);
-
-  // Set line properties
-  line1->SetLineColor(kRed);
-  line2->SetLineColor(kOrange + 7);
-  line3->SetLineColor(kYellow);
-  line4->SetLineColor(kGreen - 3);
-  line5->SetLineColor(kAzure + 7);
-  line6->SetLineColor(kViolet - 1);
-
-  line1->SetLineWidth(2);
-  line2->SetLineWidth(2);
-  line3->SetLineWidth(2);
-  line4->SetLineWidth(2);
-  line5->SetLineWidth(2);
-  line6->SetLineWidth(2);
-
-  line2->SetLineStyle(2);
-  line4->SetLineStyle(2);
-  line5->SetLineStyle(2);
-  line6->SetLineStyle(2);
-
-  // Draw the lines on the canvas
-  // line1->Draw("same");
-  // line2->Draw("same");
-  // line3->Draw("same");
-  // line4->Draw("same");
-  // line5->Draw("same");
-  // line6->Draw("same");
-
-  // Create a legend and add entries for each line
-  TLegend *legend =
-      new TLegend(0.65, 0.65, 0.9, 0.9); // Adjust position as needed
-  legend->AddEntry(line1, "x = 11.7", "l");
-  legend->AddEntry(line2, "x = 11.85 ?", "l");
-  legend->AddEntry(line3, "x = 12.1", "l");
-  legend->AddEntry(line4, "x = 12.2 ?", "l");
-  legend->AddEntry(line5, "x = 12.4 ?", "l");
-  legend->AddEntry(line6, "x = 12.7 ?", "l");
-
-  // Set legend properties 
-  // c20->cd(3);
-  // hEx2->DrawClone("colz");
-  // c20->cd(4);
-  // hKin->DrawClone("colz");
-  // hEx->DrawClone("colz");
-  // Draw
-  // TGraph* g {};
-  // if(light != "1H")
-  // {
-  //     vkins[0].SetBeamEnergyAndEx(ebeam_i_MeV, 0);
-  //     g = vkins[0].GetKinematicLine3();
-  //     g->Draw("l");
-  // }
-  // // cuts.DrawAll();
-  // c20->cd(5);
-  // hProj->DrawClone("colz");
 }
 #endif

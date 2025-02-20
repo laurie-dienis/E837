@@ -54,8 +54,10 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   double angle_min{130.};
   double angle_max{140.};
 
+  TRandom random;
+
   // SIGMAS
-  const double sigmaSil{0.060 / 2.355};
+  const double sigmaSil{0};
   const double sigmaPercentBeam{0};
   const double sigmaAngleLight{0.95 / 2.355};
   // Parameters of beam in mm
@@ -75,12 +77,12 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   const double thresholdSi1{1.};
 
   // number of iterations
-  const int iterations{static_cast<int>(1e6)};
+  const int iterations{static_cast<int>(16000000)};
 
   // ACTIVATE STRAGGLING OR NOT
-  bool stragglingInGas{true};
-  bool stragglingInSil{true};
-  bool silResolution{true};
+  bool stragglingInGas{false};
+  bool stragglingInSil{false};
+  bool silResolution{false};
   bool thetaResolution{true};
   bool slowDownBeam{true};
 
@@ -88,7 +90,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   std::pair<double, double> eLoss0Cut{0, 1000}; //{6.5, 27.};
 
   //---- SIMULATION STARTS HERE
-  ROOT::EnableImplicitMT();
+  // ROOT::EnableImplicitMT();
 
   // timer
   TStopwatch timer{};
@@ -159,14 +161,26 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90,
       10, 15, 90, 90, 180}};
 
-  auto *hnorm_azure{new TH2D{
-      "hnorm_azure",
-      "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90, 3, 7, 90, 0, 60}};
+  auto *hnorm_phi{new TH2D{
+      "hnorm_phi",
+      "geometric efficiency;E*_{^{12}Be,elastic} [MeV];#theta_{CM} [#circ]", 90,
+      10, 15, 90, 0, 200}};
 
   auto *hECM{
       new TH1D{"hECM", "ECM + threshold;E_{CM} + Thresh [MeV]", 100, 8, 18}};
 
-  auto *hprojection{new TH1D{"hprojection", "Ex12Be_norm", 80, 11, 14}};
+  auto *hprojection{new TH1D{"hprojection", "Ex12Be_norm", 800, 12.2, 12.4}};
+
+  auto *hEx_8He{
+      new TH1D{"hEx8He", "Ex_He; E_{x} [MeV]; Counts", 300, -0.1, 0.1}};
+
+  auto *hKin_6He{new TH2D{"hkin6He",
+                          "kinematics;#theta_{lab} [#circ];E_{lab} [MeV]", 90,
+                          0, 50, 90, 0, 9}};
+
+  auto *htrack{new TH2D{
+      "htrack", "trackslength;#theta_{heavy lab} [#circ];track length [mm]", 90,
+      0, 100, 90, 0, 250}};
 
   // Load SRIM tables
   // The name of the file sets particle + medium
@@ -249,14 +263,31 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     // 1-> Sample vertex and apply same cut as in analysis
     auto vertex{runner.SampleVertex(yVertexMean, yVertexSigma, zVertexMean,
                                     zVertexSigma, nullptr)};
+    if (vertex.second.X() < 127.8 || vertex.second.X() > 128.3) {
+      continue;
+    }
     // 2-> Beam energy according to its sigma
-    auto TBeam{runner.RandomizeBeamEnergy(
-        T1 * p1.GetAMU(),
-        sigmaPercentBeam * T1 * p1.GetAMU())}; // T1 in Mev / u * mass of beam
-                                               // in u = total kinetic energy
+    auto TBeam_i = T1 * p1.GetAMU(); // T1 in Mev / u * mass of beam
+    double TBeam;
+    double TBeam_u = -11;
+    // in u = total kinetic energy
     // Slow down it according to vertex position
-    if (slowDownBeam)
-      TBeam = runner.EnergyAfterGas(TBeam, vertex.second.X(), "beam");
+    std::cout << "vertex = " << vertex.second.X() << "\n";
+    double vertex_gauss = random.Gaus(vertex.second.X(), 0.3);
+
+    std::cout << "vertex_gauss = " << vertex_gauss << "\n";
+
+    if (slowDownBeam) {
+      TBeam = srim->Slow("beam", TBeam_i, vertex.second.X(), 0.);
+      if (vertex_gauss < 0) {
+        TBeam_u = srim->Slow("beam", TBeam_i, 0., 0.);
+      } else {
+        TBeam_u = srim->Slow("beam", TBeam_i, vertex_gauss, 0.);
+      }
+    }
+    std::cout << "tbeam= " << TBeam * 1e3 << "\n";
+    TBeam = TBeam_u;
+    std::cout << "tbeam u  = " << TBeam_u * 1e3 << "\n";
     // runner energy functions return std::nan when the particle is stopped in
     // the gas! if nan (aka stopped in gas, continue) if not stopped but beam
     // energy below kinematic threshold, continue
@@ -269,9 +300,16 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     // focus on recoil 3 (light)
     // obtain thetas and energies
     auto *PLight{kingen.GetLorentzVector(0)};
+    // auto *PHeavy{kingen.GetLorentzVector(1)};
     auto theta3Lab{PLight->Theta()};
-    //std::cout << "theta3Lab = " << theta3Lab * TMath::RadToDeg() << "\n";
+    std::cout << "theta3 = " << theta3Lab << "\n";
+    std::cout << "ebeam = " << TBeam << "\n";
+    // auto theta4Lab{PHeavy->Theta()};
+    // auto phi3Lab{PLight->Phi()};
     auto T3Lab{PLight->Energy() - p3.GetMass()};
+    std::cout << "talpha= " << T3Lab << "\n";
+    std::cout << "\n";
+    // auto T4Lab{PHeavy->Energy() - p4.GetMass()};
     auto EexBefore{kingen.GetBinaryKinematics().ReconstructExcitationEnergy(
         T3Lab, theta3Lab)};
     // to compute geometric efficiency by CM interval and with our set reference
@@ -287,8 +325,16 @@ void Simulation_E837(const std::string &beam, const std::string &target,
     auto phi3Lab{runner.GetRand()->Uniform(0., 2 * TMath::Pi())};
     // Eval range of light particle
     auto lightRange{srim->EvalDirect("light", T3Lab)};
+    // auto heavyRange{srim->EvalDirect("heavy", T4Lab)};
     // Ecm from formula using masses
     auto Ecm{(p2.GetAMU() / (p2.GetAMU() + p1.GetAMU())) * TBeam};
+    // double theta_gauss = random.Gaus(theta3Lab, 0.1);
+
+    auto Ex_calc =
+        T3Lab *
+        ((2 * TMath::Cos(theta3Lab) *
+          TMath::Sqrt((TBeam_u * p3.GetAMU()) / (T3Lab * p4.GetAMU()))) -
+         ((p3.GetAMU() / p4.GetAMU()) + 1));
 
     // random Ecm for geometric efficiency
     std::random_device rd;
@@ -368,7 +414,12 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       hKinVertex->Fill(theta3Lab * TMath::RadToDeg(), Ecm + 8.96); // T3Recon);
       hEx2->Fill(Ecm + 8.96, theta3CM * TMath::RadToDeg());
       hnorm->Fill(Ecm + 8.96, theta3CM * TMath::RadToDeg());
-      hnorm_azure->Fill(Ecm*((p1.GetAMU()+p2.GetAMU())/p1.GetAMU()),theta3Lab * TMath::RadToDeg());
+      hnorm_phi->Fill(Ecm + 8.96, phi3Lab * TMath::RadToDeg());
+      hEx_8He->Fill(Ex_calc);
+      if (Ecm + 8.96 > 0 && Ecm + 8.96 < 130) {
+        // htrack->Fill(theta4Lab* TMath::RadToDeg(), heavyRange);
+        hKin_6He->Fill(theta3Lab * TMath::RadToDeg(), T3EnteringSil);
+      }
       if (theta3CM * TMath::RadToDeg() >= angle_min &&
           theta3CM * TMath::RadToDeg() <= angle_max) {
         hprojection->Fill(Ecm + 8.96);
@@ -411,14 +462,14 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
   for (int i = 1; i <= nBinsX; i++) {
     for (int j = 1; j <= nBinsY; j++) {
-      
-      double n_observe = hnorm->GetBinContent(i, j);
-      std::cout<<"n_data"<<n_observe<<"\n";
 
-      //double n_theorique = hnorm_uniform->GetBinContent(i, j);
-      double n_theorique = (iterations / 8100.)*3.;
-      std::cout<<"n_norm"<<n_theorique<<"\n";
-      std::cout<<"\n";
+      double n_observe = hnorm->GetBinContent(i, j);
+      // std::cout << "n_data" << n_observe << "\n";
+
+      // double n_theorique = hnorm_uniform->GetBinContent(i, j);
+      double n_theorique = (iterations / 8100.) * 3.;
+      // std::cout << "n_norm" << n_theorique << "\n";
+      // std::cout << "\n";
 
       // Normalise le bin
       double normalise = 0;
@@ -430,32 +481,32 @@ void Simulation_E837(const std::string &beam, const std::string &target,
       hnorm->SetBinContent(i, j, normalise);
     }
   }
-  
-  // Obtenir le nombre de bins
-  int nBinsX_azure = hnorm_azure->GetNbinsX();
-  int nBinsY_azure = hnorm_azure->GetNbinsY();
 
-  for (int i = 1; i <= nBinsX_azure; i++) {
-    for (int j = 1; j <= nBinsY_azure; j++) {
-      
-      double n_observe_azure = hnorm_azure->GetBinContent(i, j);
-      std::cout<<"n_data"<<n_observe_azure<<"\n";
+  // // Obtenir le nombre de bins
+  // int nBinsX_azure = hnorm_azure->GetNbinsX();
+  // int nBinsY_azure = hnorm_azure->GetNbinsY();
 
-      //double n_theorique = hnorm_uniform->GetBinContent(i, j);
-      double n_theorique_azure = (iterations / 8100.)*3.;
-      std::cout<<"n_norm"<<n_theorique_azure<<"\n";
-      std::cout<<"\n";
+  // for (int i = 1; i <= nBinsX_azure; i++) {
+  //   for (int j = 1; j <= nBinsY_azure; j++) {
 
-      // Normalise le bin
-      double normalise_azure = 0;
-      if (n_theorique_azure > 0) {
-        normalise_azure = n_observe_azure / n_theorique_azure;
-      }
+  //     double n_observe_azure = hnorm_azure->GetBinContent(i, j);
+  //     std::cout<<"n_data"<<n_observe_azure<<"\n";
 
-      // Mets à jour le contenu du bin normalisé
-      hnorm_azure->SetBinContent(i, j, normalise_azure);
-    }
-  }
+  //     //double n_theorique = hnorm_uniform->GetBinContent(i, j);
+  //     double n_theorique_azure = (iterations / 8100.)*3.;
+  //     std::cout<<"n_norm"<<n_theorique_azure<<"\n";
+  //     std::cout<<"\n";
+
+  //     // Normalise le bin
+  //     double normalise_azure = 0;
+  //     if (n_theorique_azure > 0) {
+  //       normalise_azure = n_observe_azure / n_theorique_azure;
+  //     }
+
+  //     // Mets à jour le contenu du bin normalisé
+  //     hnorm_azure->SetBinContent(i, j, normalise_azure);
+  //   }
+  // }
 
   // Efficiencies as quotient of histograms in TEfficiency class
   auto *eff{new TEfficiency(*hThetaCM, *hThetaCMAll)};
@@ -472,7 +523,7 @@ void Simulation_E837(const std::string &beam, const std::string &target,
   // SAVING
   outFile->cd();
   hnorm->Write();
-  hnorm_azure->Write();
+  hnorm_phi->Write();
   hprojection->Write();
   outTree->Write();
   eff->Write();
@@ -500,35 +551,36 @@ void Simulation_E837(const std::string &beam, const std::string &target,
 
     set_plot_style();
     auto *c1{new TCanvas("cAfter", "Canvas for inspection 1")};
-    c1->DivideSquare(8);
+    c1->DivideSquare(6);
     c1->cd(1);
-    hKinVertex->DrawClone("colz");
-    gtheo->Draw("same");
+    hKin_6He->DrawClone("colz");
+    // hKinVertex->DrawClone("colz");
+    // gtheo->Draw("same");
     c1->cd(2);
-    hSP->DrawClone("col");
+    htrack->DrawClone("col");
+    // c1->cd(3);
+    // // hEexAfter->DrawClone("hist");
+    // hSPCut->SetTitle("SP for particles not reaching sils");
+    // hSPCut->DrawClone("colz");
     c1->cd(3);
-    // hEexAfter->DrawClone("hist");
-    hSPCut->SetTitle("SP for particles not reaching sils");
-    hSPCut->DrawClone("colz");
-    c1->cd(4);
     // eff->Draw("apl");
-    hECM->DrawClone();
+    hEx_8He->DrawClone();
+    c1->cd(4);
+    hSPTheta->DrawClone("colz");
+    hPID->Fit("fit");
+    hPID->DrawClone("colz");
     c1->cd(5);
-    // hSPTheta->DrawClone("colz");
-    // hPID->Fit("fit");
-    // hPID->DrawClone("colz");
-    c1->cd(6);
     auto *fdummy{new TF1{"fdummy", "x", 0, 500}};
     hRPxRange->DrawClone("colz");
     fdummy->SetLineWidth(2);
     fdummy->SetLineColor(kMagenta);
     fdummy->Draw("same");
-    c1->cd(7);
+    c1->cd(6);
     // hEx2->DrawClone("col");
     hprojection->DrawClone("hist");
     std::cout << "maxbincontent" << maxBinContent << std::endl;
-    c1->cd(8);
-    hnorm_azure->DrawClone("col");
+    // c1->cd(8);
+    // hnorm_phi->DrawClone("col");
 
     // hRPx->DrawNormalized();
     // hRPxSimu->SetLineColor(kRed);
